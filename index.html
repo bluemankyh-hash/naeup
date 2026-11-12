@@ -14843,7 +14843,7 @@ v3RenderToday = function(){
   arr('queuedInvoices').forEach(function(x){ gMo.push(v3Row('계산서', 'orange', v3Esc(x.title) + ' 발행 대기', v3Esc(x.supplier || '') + ' · PC에서 엑셀 만들기', "v3Go('doc_INVOICE')")); });
   var unpaidN = (d.unpaidAll && d.unpaidAll.count) || arr('unpaidOld').length;
   var set = function(id, v){ var el = document.getElementById(id); if (el) el.textContent = v; };
-  set('v3sEx', exN); set('v3sSched', gSc.length); set('v3sTodo', td.length); set('v3sQuote', gQt.length); set('v3sUnpaid', unpaidN);
+  set('v3sEx', exN); set('v3sSched', gSc.length); set('v3sTodo', td.length); set('v3sQuote', gQt.length); set('v3sUnpaid', arr('unpaidOld').length);
   set('v3Count', (exN ? 1 : 0) + gSc.length + gTd.length + gQt.length + gMo.length + '건');
   var on = document.getElementById('v3BriefOn'); if (on) on.checked = !!d.enabled;
   var group = function(k, title, rows, empty, more, moreKey){
@@ -14858,7 +14858,7 @@ v3RenderToday = function(){
     group('sched', '오늘 일정', gSc, '오늘 일정이 없어요.', '일정', 'schedule') +
     group('todo', '단발업무', gTd, '남은 단발업무가 없어요.', '추가 · 관리', 'todo') +
     group('quote', '견적 대기', gQt, '답을 기다리는 견적이 없어요.', '', '') +
-    group('money', '미입금(30일 지남) · 계산서', gMo, '오래된 미입금이 없어요.', '입금관리', 'deposit');
+    group('money', '미입금 · 계산서', gMo, '오래된 미입금이 없어요.', '입금관리', 'deposit');
 };
 setTimeout(function(){ try { if ((window.currentWorkspaceApp || 'hub') === 'hub') v3RenderToday(); } catch (e) {} }, 0);
 </script>
