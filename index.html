@@ -32,6 +32,9 @@
 #naeupLogin small{display:block;margin-top:16px;color:#6B7079;font-size:12.5px;line-height:1.6}
 #naeupLogin .nl-msg{display:none;margin-top:12px;padding:10px 12px;border-radius:10px;background:#FDECEA;color:#A8322A;font-size:13px}
 #naeupLogin .nl-link{display:inline-block;margin-top:14px;font-size:12.5px;color:#6B7079}
+
+@keyframes naeupSpin{to{transform:rotate(360deg)}}
+.naeup-spin svg{animation:naeupSpin 1s linear infinite;color:#1F5FD6}
 </style>
 <script>/* ===== 나의 업무 · GitHub 화면 ↔ 구글 Apps Script 연결 장치 =====
    - 구글 로그인(한 번) → 갱신 열쇠를 이 기기에 보관 → 다음부터 자동 로그인
@@ -119,6 +122,18 @@
   function clean(v) {   // google.script.run 처럼: 함수·DOM 은 빼고 보냄
     try { return JSON.parse(JSON.stringify(v === undefined ? null : v)); } catch (e) { return null; }
   }
+  /* 빠른 열기: 지난번 자료를 먼저 보여 주고, 뒤에서 최신 자료로 바꿈 */
+  var SWR = { getInitialData: 1, getMorningBriefingBackend: 1 }, CK = 'naeup_cache_v1_';
+  var busyN = 0;
+  function busy(d) {
+    busyN = Math.max(0, busyN + d);
+    try { var b = document.querySelector('.header.v3 button[aria-label="새로 고침"]'); if (b) b.classList.toggle('naeup-spin', busyN > 0); } catch (e) {}
+  }
+  function cacheGet(fn) { try { var c = JSON.parse(ls(CK + fn) || 'null'); return c && c.d; } catch (e) { return null; } }
+  function cacheSet(fn, d) {
+    if (!d || d.gate || d._initError || d.success === false) return;
+    try { ls(CK + fn, JSON.stringify({ t: Date.now(), d: d })); } catch (e) { try { ls(CK + fn, null); } catch (e2) {} }
+  }
   function runner(s, f, u) {
     return new Proxy({}, {
       get: function (_, p) {
@@ -130,7 +145,15 @@
           var args = [].slice.call(arguments);
           while (args.length && args[args.length - 1] === undefined) args.pop();
           args = args.map(clean);
-          callScript(p, args).then(function (r) { if (s) s(r, u); }, function (e) {
+          var cached = (SWR[p] && !args.length) ? cacheGet(p) : null;
+          if (cached && s) setTimeout(function () { try { s(cached, u); } catch (e) { if (window.console) console.error(e); } }, 0);
+          if (cached) busy(1);
+          callScript(p, args).then(function (r) {
+            if (cached) busy(-1);
+            if (SWR[p] && !args.length) cacheSet(p, r);
+            if (s) s(r, u);
+          }, function (e) {
+            if (cached) { busy(-1); if (!e.login) return; }
             if (f) f(e, u); else if (window.console) console.error('[' + p + ']', e);
           });
         };
@@ -186,7 +209,7 @@
     var el = document.getElementById('naeupLogin'); if (el) el.style.display = 'none';
     var w = loginWaiters; loginWaiters = []; w.forEach(function (r) { r(); });
   }
-  window.naeupLogout = function () { ls(RT, null); ls(AT, null); at = null; location.href = CFG.redirectUri; };
+  window.naeupLogout = function () { ls(RT, null); ls(AT, null); Object.keys(SWR).forEach(function (k) { ls(CK + k, null); }); at = null; location.href = CFG.redirectUri; };
 
   /* 구글에서 돌아왔을 때: 열쇠 교환 */
   var qs = new URLSearchParams(location.search);
@@ -206,6 +229,8 @@
     }
   } else if (!ls(RT) && !(at && Date.now() < atExp)) {
     showLogin();
+  } else if (!(at && Date.now() < atExp)) {
+    getToken().catch(function () {});   // 화면을 그리는 동안 미리 열쇠 받아 두기
   }
 })();
 </script>
