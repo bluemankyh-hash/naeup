@@ -15067,7 +15067,7 @@ function v3RenderBizList(kw){
 
 <script>
 /* ===== [§1-E-8] 메뉴 이름 4글자로 통일 ===== */
-V3_TITLES = { hub: '오늘업무', schedule: '일정관리', todo: '단발업무', crm: '현장관리', near: '주변업체', deposit: '입금관리', mail: '메일관리', doc: '문서관리' };
+V3_TITLES = { hub: '오늘업무', schedule: '일정관리', todo: '단발업무', crm: '사업관리', near: '주변업체', deposit: '입금관리', mail: '메일관리', doc: '문서관리' };
 V3_ORDER_TABS = { manhole: '맨홀발주', po: '일반발주', extract: '파일추출', pump: '펌프맨홀' };
 V3_PAGE_TITLES = [ ['bizModal', '업체관리'], ['docHistoryModal', '대장관리'], ['taxInvoiceSection', '세금계산서'], ['contactBookSection', '명함관리'], ['generalLogSection', '외근일지'], ['extractInboxSection', '추출함'], ['deliverySection', '납품현황'], ['manualAddSection', '사업등록'], ['updateSection', '사업수정'], ['manholeOrderSection', 'ORDER'], ['docWriterSection', 'DOC'] ];
 v3RenderMenu = function(){
@@ -15079,7 +15079,7 @@ v3RenderMenu = function(){
   var oo = v3OrderOpen || /^order_/.test(cur), dd = v3DocOpen || /^doc_/.test(cur);
   var schedN = (function(){ try { var t = v3Today(); return (window.allSchedules || []).filter(function(x){ return isScheduleOnDate(x, t); }).length; } catch (e) { return 0; } })();
   var html = it('hub', '오늘업무', document.getElementById('v3Count') ? document.getElementById('v3Count').textContent.replace('건', '') : '');
-  html += '<div class="v3-gt">영업</div>' + it('schedule', '일정관리', schedN ? '오늘 ' + schedN : '') + it('todo', '단발업무', todoN || '') + it('crm', '현장관리', (window.allProjects || []).length || '') + it('contacts', '명함관리', (window.allContacts || []).length || '') + it('biz', '업체관리', (window.allBizPartners || []).length || '') + it('fieldlog', '외근일지') + it('near', '주변업체', '', false, 'sub');
+  html += '<div class="v3-gt">영업</div>' + it('schedule', '일정관리', schedN ? '오늘 ' + schedN : '') + it('todo', '단발업무', todoN || '') + it('crm', '사업관리', (window.allProjects || []).length || '') + it('contacts', '명함관리', (window.allContacts || []).length || '') + it('biz', '업체관리', (window.allBizPartners || []).length || '') + it('fieldlog', '외근일지') + it('near', '주변업체', '', false, 'sub');
   html += '<div class="v3-gt">서류 · 발주</div>' + it('ledger', '대장관리');
   html += '<button type="button" class="v3-mi' + (oo ? ' open' : '') + '" onclick="v3OrderOpen=!v3OrderOpen; v3RenderMenu();"><span>발주관리</span>' + car + '</button>';
   if (oo) html += it('order_manhole', '맨홀발주', '', false, 'sub') + it('order_po', '일반발주', '', false, 'sub') + it('order_extract', '파일추출', '', false, 'sub') + it('order_pump', '펌프맨홀', '', false, 'sub');
