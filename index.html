@@ -12695,8 +12695,8 @@ google.script.run
 // ==================== [§3-X] 📥 추출함 ====================
 var exiData = { list: [], folderUrl: '', autoOn: false, unprocessedFiles: 0 };
 var exiFilter = '전체';
-var EXI_TYPES = ['맨홀주문서', '일반발주서', '견적·명세', '사업자등록증', '명함', '펌프장주문서', '펌프장도면', '도면', '입금문자'];
-var EXI_ICON = { '맨홀주문서': '🕳️', '일반발주서': '📦', '견적·명세': '🧾', '사업자등록증': '🏢', '명함': '📇', '펌프장주문서': '⚙️', '펌프장도면': '📐', '도면': '📏', '입금문자': '💰', '확인필요': '❓' };
+var EXI_TYPES = ['맨홀주문서', '일반발주서', '견적·명세', '세금계산서', '분할납품통지서', '사업자등록증', '명함', '펌프장주문서', '펌프장도면', '도면', '입금문자'];
+var EXI_ICON = { '맨홀주문서': '🕳️', '일반발주서': '📦', '견적·명세': '🧾', '사업자등록증': '🏢', '명함': '📇', '펌프장주문서': '⚙️', '펌프장도면': '📐', '도면': '📏', '입금문자': '💰', '세금계산서': '🧮', '분할납품통지서': '🚚', '확인필요': '❓' };
 function exiEsc_(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function openExtractInbox() {
 var m = document.getElementById('docHistoryModal'); if (m) m.style.display = 'none';
@@ -12798,7 +12798,7 @@ if (!it) return;
 var ty = exiTypeOf_(it);
 var isDwg = /\.(dwg|dxf)$/i.test(it.name || '');
 if (ty === '입금문자') { closeSection('extractInboxSection'); openBankMessageFromInbox_(it); return; }
-if (ty === '확인필요' || ty === '도면' || isDwg) { window.open('https://drive.google.com/file/d/' + it.fileId + '/view', '_blank'); if (ty !== '확인필요') setExtractStatus(id, '열람'); return; }
+if (ty === '확인필요' || ty === '도면' || ty === '세금계산서' || ty === '분할납품통지서' || isDwg) { window.open('https://drive.google.com/file/d/' + it.fileId + '/view', '_blank'); if (ty !== '확인필요') setExtractStatus(id, '열람'); return; }
 document.getElementById('loadingOverlay').style.display = 'flex';
 google.script.run
 .withSuccessHandler(function(r) {
@@ -12832,6 +12832,9 @@ handleContactCardUpload(ev);
 } else if (ty === '펌프장주문서' || ty === '펌프장도면') {
 window.open(r.url, '_blank');
 openExternalManholeAutoOrderApp(); switchPortalParserTab('pump');
+} else {
+// 세금계산서·분할납품통지서·도면 등: 원본 파일을 바로 열기
+window.open(r.url, '_blank');
 }
 setExtractStatus(id, '열람');
 showToast('📂 [' + ty + '] 화면에 불러왔어요. 확인 후 추출함에서 ✅ 완료를 눌러 주세요.');
