@@ -9597,29 +9597,46 @@ targetList = [check.invoice];
 downloadHometaxBatchExcelList_(extType, targetList);
 }
 
+
+/* 홈택스 공식 일괄발급 양식(엑셀업로드양식)에 7행부터 값만 채우기 — 앱과 같은 폴더의 hometax_tax_template.xls */
+var HT_TPL = null;
+(function() { try { fetch('hometax_tax_template.xls', { cache: 'force-cache' }).then(function(r) { return r.ok ? r.arrayBuffer() : null; }).then(function(b) { if (b) HT_TPL = b; }).catch(function() {}); } catch (e) {} })();
+function hometaxWorkbook_(list) {
+  var aoa = buildHometaxWorksheetMatrix(list), hi = -1;
+  for (var i = 0; i < aoa.length; i++) { if (/^전자\(세금\)계산서\s*종류/.test(String((aoa[i] || [])[0] || ''))) { hi = i; break; } }
+  var data = aoa.slice(hi + 1).filter(function(r) { return (r || []).some(function(v) { return String(v == null ? '' : v) !== ''; }); });
+  if (HT_TPL && typeof XLSX !== 'undefined') {
+    try {
+      var wb = XLSX.read(new Uint8Array(HT_TPL), { type: 'array', cellStyles: true, cellNF: true });
+      var ws = wb.Sheets['엑셀업로드양식'];
+      if (ws) {
+        data.forEach(function(row, ri) {
+          for (var c = 0; c < 59; c++) {
+            var v = String(row[c] == null ? '' : row[c]), addr = XLSX.utils.encode_cell({ r: 6 + ri, c: c });
+            if (v !== '') ws[addr] = { t: 's', v: v, w: v, z: '@' }; else if (ws[addr] && ws[addr].v !== undefined) delete ws[addr];
+          }
+        });
+        var rg = XLSX.utils.decode_range(ws['!ref'] || 'A1:BG106');
+        rg.e.r = Math.max(rg.e.r, 6 + data.length - 1); rg.e.c = Math.max(rg.e.c, 58);
+        ws['!ref'] = XLSX.utils.encode_range(rg);
+        return { wb: wb, template: true };
+      }
+    } catch (eT) { console.warn('홈택스 양식 채우기 실패, 기본 방식으로:', eT); }
+  }
+  var ws2 = XLSX.utils.aoa_to_sheet(aoa);
+  var range = XLSX.utils.decode_range(ws2['!ref'] || 'A1:BG10');
+  for (var R = 5; R <= range.e.r; ++R) for (var C = 0; C <= range.e.c; ++C) { var ad = XLSX.utils.encode_cell({ r: R, c: C }); if (ws2[ad] && ws2[ad].v !== undefined && ws2[ad].v !== '') { ws2[ad].t = 's'; ws2[ad].v = String(ws2[ad].v); } }
+  var wb2 = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb2, ws2, '엑셀업로드양식');
+  return { wb: wb2, template: false };
+}
 function downloadHometaxBatchExcelList_(extType, targetList) {
 if (typeof XLSX === 'undefined') {
 showToast('⚠️ 엑셀 생성 라이브러리를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');
 return;
 }
 
-var aoa = buildHometaxWorksheetMatrix(targetList);
-var ws = XLSX.utils.aoa_to_sheet(aoa);
-
-// 모든 데이터 셀을 텍스트('s') 형식으로 고정하여 '01', '02', 사업자번호 앞자리 0 유실 방지
-var range = XLSX.utils.decode_range(ws['!ref'] || 'A1:BG10');
-for (var R = 5; R <= range.e.r; ++R) {
-for (var C = 0; C <= range.e.c; ++C) {
-var addr = XLSX.utils.encode_cell({ r: R, c: C });
-if (ws[addr] && ws[addr].v !== undefined && ws[addr].v !== '') {
-ws[addr].t = 's';
-ws[addr].v = String(ws[addr].v);
-}
-}
-}
-
-var wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, ws, '엑셀업로드양식');
+var hb = hometaxWorkbook_(targetList), wb = hb.wb;
+if (hb.template) extType = 'xlsx'; // 공식 양식으로 채운 파일은 .xlsx (홈택스 허용: XLS, XLSX)
 
 var firstInv = targetList[0];
 var dateStr = (firstInv.writeDate || new Date().toISOString().slice(0, 10)).replace(/[^0-9-]/g, '');
@@ -9729,12 +9746,11 @@ var base64Excel = '';
 var fileName = '';
 var mime = 'application/vnd.ms-excel';
 if (typeof XLSX !== 'undefined') {
-var aoa = buildHometaxWorksheetMatrix([check.invoice]);
-var ws = XLSX.utils.aoa_to_sheet(aoa);
-var wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, ws, '엑셀업로드양식');
-base64Excel = 'data:' + mime + ';base64,' + XLSX.write(wb, { bookType: 'biff8', type: 'base64' });
-fileName = '홈택스일괄발행_' + (check.invoice.suppName || '').replace(/[\(\)\s]/g, '') + '_' + (check.invoice.recvCompany || '') + '_' + (check.invoice.writeDate || '') + '.xls';
+var hb2 = hometaxWorkbook_([check.invoice]), wb = hb2.wb;
+var bt2 = hb2.template ? 'xlsx' : 'biff8';
+if (hb2.template) mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+base64Excel = 'data:' + mime + ';base64,' + XLSX.write(wb, { bookType: bt2, type: 'base64' });
+fileName = '홈택스일괄발행_' + (check.invoice.suppName || '').replace(/[\(\)\s]/g, '') + '_' + (check.invoice.recvCompany || '').replace(/[\\/:*?"<>|\s]/g, '') + '_' + (check.invoice.writeDate || '') + (hb2.template ? '.xlsx' : '.xls');
 }
 saveTaxInvoiceToServerAndLocal(check.invoice, base64Excel, fileName, mime, false);
 // 발행: 엑셀을 이 기기에도 받고 → 홈택스 열기(ID 복사) → 순서 안내
