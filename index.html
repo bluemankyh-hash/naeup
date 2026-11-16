@@ -9605,7 +9605,7 @@ function hometaxWorkbook_(list) {
   var aoa = buildHometaxWorksheetMatrix(list), hi = -1;
   for (var i = 0; i < aoa.length; i++) { if (/^전자\(세금\)계산서\s*종류/.test(String((aoa[i] || [])[0] || ''))) { hi = i; break; } }
   var data = aoa.slice(hi + 1).filter(function(r) { return (r || []).some(function(v) { return String(v == null ? '' : v) !== ''; }); });
-  if (HT_TPL && typeof XLSX !== 'undefined') {
+  if (false && HT_TPL && typeof XLSX !== 'undefined') { // 공식 양식 채우기: 홈택스가 못 읽어서 끔 (PC에서 읽힌 예전 방식 사용)
     try {
       var wb = XLSX.read(new Uint8Array(HT_TPL), { type: 'array', cellStyles: true, cellNF: true });
       var ws = wb.Sheets['엑셀업로드양식'];
@@ -9626,7 +9626,7 @@ function hometaxWorkbook_(list) {
   var ws2 = XLSX.utils.aoa_to_sheet(aoa);
   var range = XLSX.utils.decode_range(ws2['!ref'] || 'A1:BG10');
   for (var R = 5; R <= range.e.r; ++R) for (var C = 0; C <= range.e.c; ++C) { var ad = XLSX.utils.encode_cell({ r: R, c: C }); if (ws2[ad] && ws2[ad].v !== undefined && ws2[ad].v !== '') { ws2[ad].t = 's'; ws2[ad].v = String(ws2[ad].v); } }
-  var wb2 = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb2, ws2, '엑셀업로드양식');
+  var wb2 = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb2, ws2, '전자세금계산서');
   return { wb: wb2, template: false };
 }
 function downloadHometaxBatchExcelList_(extType, targetList) {
