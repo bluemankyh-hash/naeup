@@ -10899,14 +10899,22 @@ var bNo = noH.length >= 3 ? parseInt(noH[1], 10) : (bIdx + 1);
 var hVal = parseFloat(noH.length >= 3 ? noH[2] : noH[1]);
 if (isNaN(hVal) || hVal <= 0) return;
 var hMm = hVal >= 100 ? Math.round(hVal) : Math.round(hVal * 1000);
-var angM = bClean.match(/관종\s+([^\n]+)/);
-var angs = angM ? (angM[1].match(/\d+(?=\s*[˚°])/g) || ['0']) : ['0'];
+var angM = bClean.match(/관종\s+([^\n]+)/) || bClean.match(/각도\s+([^\n]*[˚°][^\n]*)/);
+var angs = ['0'];
+if (angM) {
+  // 칸마다: '184˚' → 184, '˚'만 있으면 빈칸 (각도 기호가 떨어져 읽혀도 숫자는 살림)
+  var angToks = angM[1].trim().split(/\s+/).filter(function(t){ return /^\d{1,3}\s*[˚°]?$|^[˚°]$/.test(t); });
+  if (angToks.length) angs = angToks.map(function(t){ var n = t.match(/\d{1,3}/); return n ? String(parseInt(n[0], 10)) : ''; });
+}
+// h(단차) 줄: '차도 h 0.56' → IN 분기관 단차에 순서대로
+var hM = bClean.match(/(?:^|\s)h\s+((?:\d+(?:\.\d+)?\s*)+)/m);
+var hVals = hM ? (hM[1].match(/\d+(?:\.\d+)?/g) || []) : [];
 var diaM = bClean.match(/관경\s+((?:\d{3,4}\s*)+)/);
 var dias = diaM ? (diaM[1].match(/\d{3,4}/g) || ['200']) : ['200'];
 var outD = parseInt(dias[0] || 200, 10);
 var inBranchesArr = [];
 for (var k = 1; k < dias.length && k <= 5; k++) {
-inBranchesArr.push({ angle: angs[k] || '180', dia: String(dias[k]), dancha: '' });
+inBranchesArr.push({ angle: angs[k] || '180', dia: String(dias[k]), dancha: hVals[k - 1] ? String(Math.max(0, Number((parseFloat(hVals[k - 1]) - 0.03).toFixed(2)))) : '' });
 }
 var spMh = bClean.match(/(MH-[0-9A-Za-z\-]+-)\s*[\s\S]*?(\d+\([차보]\))/);
 var mhNo = spMh ? (spMh[1] + spMh[2]) : ((bClean.match(/MH-[0-9A-Za-z\-]+(?:\([차보]\))?/) || [])[0] || ('MH-' + bNo));
