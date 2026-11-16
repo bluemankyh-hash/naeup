@@ -8590,7 +8590,7 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 
 <div style="display:grid; grid-template-columns: 1fr; gap:8px;">
 <button type="button" onclick="addCurrentToTaxBatchQueue()" style="background:#0284c7; color:#ffffff; border:none; height:44px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px;">
-<span>➕</span> <span id="btnAddTaxQueueLabel">발행 대기에 담기 (0건)</span>
+<span>➕</span> <span id="btnAddTaxQueueLabel">(휴대폰)발행 대기에 담기 (0건)</span>
 </button>
 <button type="button" onclick="saveTaxInvoiceRecordOnly()" hidden style="background:#16a34a; color:#ffffff; border:none; height:44px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px;">
 <span>🧾</span> <span>세금계산서 발행 · 드라이브 저장</span>
@@ -8812,7 +8812,7 @@ wrap.innerHTML =
 '</table>' +
 '</div>' +
 '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">' +
-'<button type="button" onclick="addCurrentToTaxBatchQueue()" style="background:linear-gradient(135deg, #0369A1, #0284C7); color:#ffffff; border:none; border-radius:10px; padding:13px 8px; font-size:14px; font-weight:900; cursor:pointer;">➕ 발행 대기에 담기</button>' +
+'<button type="button" onclick="addCurrentToTaxBatchQueue()" style="background:linear-gradient(135deg, #0369A1, #0284C7); color:#ffffff; border:none; border-radius:10px; padding:13px 8px; font-size:14px; font-weight:900; cursor:pointer;">➕ (휴대폰)발행 대기에 담기</button>' +
 '<button type="button" onclick="downloadHometaxBatchExcel(\'xls\', false)" style="background:linear-gradient(135deg, #1F5FD6, #134E3B); color:#ffffff; border:none; border-radius:10px; padding:13px 8px; font-size:14px; font-weight:900; cursor:pointer;">📥 이 건만 바로 엑셀</button>' +
 '</div>' +
 '<div style="font-size:11.5px; color:#64748B; margin-top:6px; text-align:center;">밖에서는 [대기에 담기] → 사무실 PC에서 [대기 건 엑셀 만들기] → 홈택스 일괄발급 업로드</div>' +
@@ -9706,7 +9706,7 @@ function renderTaxBatchQueue() {
 var q = getQueuedTaxInvoices_();
 taxBatchQueue = q;
 var btnLabel = document.getElementById('btnAddTaxQueueLabel');
-if (btnLabel) btnLabel.innerText = '발행 대기에 담기 (' + q.length + '건)';
+if (btnLabel) btnLabel.innerText = '(휴대폰)발행 대기에 담기 (' + q.length + '건)';
 var box = document.getElementById('taxBatchQueueBox');
 var listEl = document.getElementById('taxBatchQueueList');
 var titleEl = document.getElementById('taxQueueSummaryTitle');
@@ -15743,7 +15743,7 @@ function feeToTax() {
     try { setTaxItemCondenseMode('manual'); } catch (e) {}
     renderTaxItemRows(its.map(function(it) { var a = Number(it.amount || 0); return { day: date, name: String(it.name || '수수료').slice(0, 40), spec: '', qty: 1, price: a, supplyAmount: a, taxAmount: Math.round(a * 0.1) }; }));
     try { validateTaxInvoiceReadiness(); } catch (e) {}
-    showToast(rv.bizNo ? '🧮 계산서 칸을 채웠어요. 확인 후 [발행 대기에 담기] → 일괄발행 엑셀 받기' : '🧮 품목을 채웠어요. 공급받는자(사업자등록증)를 확인해 주세요.');
+    showToast(rv.bizNo ? '🧮 계산서 칸을 채웠어요. 확인 후 [(휴대폰)발행 대기에 담기] → PC에서 대기 건 엑셀' : '🧮 품목을 채웠어요. 공급받는자(사업자등록증)를 확인해 주세요.');
   }, 400);
 }
 /* 추출함: 수수료 요청서는 '열기'를 누르면 이 화면으로 */
