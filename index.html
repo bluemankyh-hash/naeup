@@ -8584,7 +8584,7 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 </div>
 
 <div style="display:flex; flex-direction:column; gap:8px;">
-<button type="button" onclick="executeInstantHometaxAutoIssue()" style="background:linear-gradient(135deg, #1F5FD6, #134E3B); color:#ffffff; border:none; height:50px; border-radius:10px; font-size:15.5px; font-weight:900; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(31, 95, 214, 0.25);">
+<button type="button" onclick="downloadHometaxBatchExcel('xls', false)" style="background:linear-gradient(135deg, #1F5FD6, #134E3B); color:#ffffff; border:none; height:50px; border-radius:10px; font-size:15.5px; font-weight:900; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(31, 95, 214, 0.25);">
 <span>📥</span> <span>이 건만 바로 엑셀 만들기</span>
 </button>
 
@@ -8813,7 +8813,7 @@ wrap.innerHTML =
 '</div>' +
 '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">' +
 '<button type="button" onclick="addCurrentToTaxBatchQueue()" style="background:linear-gradient(135deg, #0369A1, #0284C7); color:#ffffff; border:none; border-radius:10px; padding:13px 8px; font-size:14px; font-weight:900; cursor:pointer;">➕ 발행 대기에 담기</button>' +
-'<button type="button" onclick="executeInstantHometaxAutoIssue()" style="background:linear-gradient(135deg, #1F5FD6, #134E3B); color:#ffffff; border:none; border-radius:10px; padding:13px 8px; font-size:14px; font-weight:900; cursor:pointer;">📥 이 건만 바로 엑셀</button>' +
+'<button type="button" onclick="downloadHometaxBatchExcel(\'xls\', false)" style="background:linear-gradient(135deg, #1F5FD6, #134E3B); color:#ffffff; border:none; border-radius:10px; padding:13px 8px; font-size:14px; font-weight:900; cursor:pointer;">📥 이 건만 바로 엑셀</button>' +
 '</div>' +
 '<div style="font-size:11.5px; color:#64748B; margin-top:6px; text-align:center;">밖에서는 [대기에 담기] → 사무실 PC에서 [대기 건 엑셀 만들기] → 홈택스 일괄발급 업로드</div>' +
 '</div>';
