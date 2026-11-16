@@ -9629,6 +9629,29 @@ function hometaxWorkbook_(list) {
   var wb2 = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb2, ws2, '전자세금계산서');
   return { wb: wb2, template: false };
 }
+
+/* 세금계산서를 PC에서 발행(엑셀 생성)하면 단발업무에 '출력' 할 일 자동 등록 (같은 건은 한 번만) */
+function addTaxPrintTodo_(inv) {
+  try {
+    if (!inv) return;
+    var d = String(inv.writeDate || '').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/, '$2/$3');
+    var amt = Number(inv.grandTotal || 0);
+    var task = '🖨 세금계산서 출력·보관 - ' + (inv.recvCompany || '거래처') + ' ' + (amt ? '₩' + amt.toLocaleString() : '') + (d ? ' (' + d + ' 작성)' : '') + (inv.suppName ? ' / ' + inv.suppName : '');
+    var key = normTodoKeyV1(task);
+    if ((allTodos || []).some(function(t) { return t && normTodoKeyV1(t.task) === key && !/완료/.test(String(t.status || '')); })) return;
+    var n = new Date(), today = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+    var row = [today, task, '진행중'];
+    var opt = { rowIndex: Date.now() % 100000 + 700, date: today, rawDate: today, task: task, status: '진행중' };
+    if (!Array.isArray(allTodos)) allTodos = [];
+    allTodos.push(opt);
+    try { saveTodoToPermanentLocal(opt); saveCachedTodosSnapshotV1(allTodos); renderTodos(); } catch (eR) {}
+    var pl = { mode: 'saveTodo', action: 'saveTodo', rowIndex: null, origTask: '', rowData: row };
+    callTodoBackendSafeV1(pl, { action: 'saveTodo', rowIndex: null, origTask: '', rowData: row }, function(res) {
+      if (res && Array.isArray(res.todos) && res.todos.length) { allTodos = mergePermanentTodosWithServer(res.todos); try { renderTodos(); } catch (e2) {} }
+    }, function() {});
+    showToast('🖨 단발업무에 「세금계산서 출력」을 등록했어요');
+  } catch (e) { console.warn('출력 할 일 등록 실패', e); }
+}
 function downloadHometaxBatchExcelList_(extType, targetList) {
 if (typeof XLSX === 'undefined') {
 showToast('⚠️ 엑셀 생성 라이브러리를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');
@@ -9662,6 +9685,7 @@ var dataUri = 'data:' + mime + ';base64,' + base64Excel;
 targetList.forEach(function(invItem, idx) {
 saveTaxInvoiceToServerAndLocal(invItem, idx === 0 ? dataUri : '', idx === 0 ? fileName : '', mime, true);
 });
+targetList.forEach(function(invItem) { addTaxPrintTodo_(invItem); });
 } catch (e) {
 console.warn('엑셀 백업 저장 경고:', e);
 }
@@ -9753,6 +9777,7 @@ base64Excel = 'data:' + mime + ';base64,' + XLSX.write(wb, { bookType: bt2, type
 fileName = '홈택스일괄발행_' + (check.invoice.suppName || '').replace(/[\(\)\s]/g, '') + '_' + (check.invoice.recvCompany || '').replace(/[\\/:*?"<>|\s]/g, '') + '_' + (check.invoice.writeDate || '') + (hb2.template ? '.xlsx' : '.xls');
 }
 saveTaxInvoiceToServerAndLocal(check.invoice, base64Excel, fileName, mime, false);
+addTaxPrintTodo_(check.invoice);
 // 발행: 엑셀을 이 기기에도 받고 → 홈택스 열기(ID 복사) → 순서 안내
 if (base64Excel) { try { var a = document.createElement('a'); a.href = base64Excel; a.download = fileName; document.body.appendChild(a); a.click(); a.remove(); } catch (eDl) {} }
 launchHometaxWithAutoSupplier('pc');
