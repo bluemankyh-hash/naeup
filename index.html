@@ -274,6 +274,22 @@
 <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>/* pdf.js 글자 조각을 위치대로 이어 붙여 줄 단위 글로 (한 글자씩 끊긴 PDF 대비) */
+function pdfItemsToText_(items) {
+  var its = (items || []).filter(function(t) { return t && t.str && t.transform; }).map(function(t) {
+    return { s: String(t.str), x: t.transform[4], y: t.transform[5], w: t.width || 0, fs: Math.hypot(t.transform[2], t.transform[3]) || 10 };
+  });
+  its.sort(function(a, b) { return Math.abs(b.y - a.y) > 2.5 ? b.y - a.y : a.x - b.x; });
+  var lines = [], cur = null;
+  its.forEach(function(t) {
+    if (!cur || Math.abs(cur.y - t.y) > Math.max(2.5, t.fs * 0.4)) { cur = { y: t.y, parts: [], end: -1e9 }; lines.push(cur); }
+    var gap = t.x - cur.end;
+    if (cur.parts.length && gap > t.fs * 0.3) cur.parts.push(' ');
+    cur.parts.push(t.s); cur.end = Math.max(cur.end, t.x + t.w);
+  });
+  return lines.map(function(l) { return l.parts.join('').replace(/\s{2,}/g, ' ').trim(); }).filter(Boolean).join('\n');
+}
+</script>
 <script>if(typeof pdfjsLib!=="undefined"&&pdfjsLib.GlobalWorkerOptions){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";}</script>
 <style>
 /* 크고 시원한 닫기 버튼 일괄 스타일 적용 */
@@ -7053,7 +7069,7 @@ const typedarray = new Uint8Array(be.target.result);
 pdfjsLib.getDocument(typedarray).promise.then(async function(pdf) {
 const page = await pdf.getPage(1);
 const textContent = await page.getTextContent();
-const extractedText = (textContent && textContent.items) ? textContent.items.map(it => String(it.str || "")).join("\n") : "";
+const extractedText = (textContent && textContent.items) ? pdfItemsToText_(textContent.items) : "";
 const viewport = page.getViewport({ scale: 2.0 });
 const canvas = document.createElement("canvas");
 const context = canvas.getContext("2d");
