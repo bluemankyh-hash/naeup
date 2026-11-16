@@ -9619,7 +9619,7 @@ ws[addr].v = String(ws[addr].v);
 }
 
 var wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, ws, '전자세금계산서');
+XLSX.utils.book_append_sheet(wb, ws, '엑셀업로드양식');
 
 var firstInv = targetList[0];
 var dateStr = (firstInv.writeDate || new Date().toISOString().slice(0, 10)).replace(/[^0-9-]/g, '');
@@ -9732,7 +9732,7 @@ if (typeof XLSX !== 'undefined') {
 var aoa = buildHometaxWorksheetMatrix([check.invoice]);
 var ws = XLSX.utils.aoa_to_sheet(aoa);
 var wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, ws, '전자세금계산서');
+XLSX.utils.book_append_sheet(wb, ws, '엑셀업로드양식');
 base64Excel = 'data:' + mime + ';base64,' + XLSX.write(wb, { bookType: 'biff8', type: 'base64' });
 fileName = '홈택스일괄발행_' + (check.invoice.suppName || '').replace(/[\(\)\s]/g, '') + '_' + (check.invoice.recvCompany || '') + '_' + (check.invoice.writeDate || '') + '.xls';
 }
