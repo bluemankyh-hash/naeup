@@ -8584,7 +8584,7 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 </div>
 
 <div style="display:flex; flex-direction:column; gap:8px;">
-<button type="button" onclick="downloadHometaxBatchExcel('xls', false)" style="background:linear-gradient(135deg, #1F5FD6, #134E3B); color:#ffffff; border:none; height:50px; border-radius:10px; font-size:15.5px; font-weight:900; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(31, 95, 214, 0.25);">
+<button type="button" onclick="executeInstantHometaxAutoIssue()" style="background:linear-gradient(135deg, #1F5FD6, #134E3B); color:#ffffff; border:none; height:50px; border-radius:10px; font-size:15.5px; font-weight:900; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(31, 95, 214, 0.25);">
 <span>📥</span> <span>이 건만 바로 엑셀 만들기</span>
 </button>
 
@@ -8745,6 +8745,19 @@ return;
 }
 downloadHometaxBatchExcel('xls', false);
 launchHometaxWithAutoSupplier('pc');
+var inv0 = check.invoice || {}, prof0 = (defaultCompanyProfiles[inv0.suppKey] || {});
+setTimeout(function() {
+showCustomAlert(
+'엑셀을 받았고, 홈택스를 새 창으로 열었어요. 이렇게 발행하세요:\n\n' +
+'① 홈택스 로그인 (' + (prof0.name || inv0.suppName || '') + ' · ID ' + (prof0.hometaxId || '') + ' 복사됨)\n' +
+'   공동인증서·간편인증은 본인이 직접 해야 해요\n' +
+'② 계산서·영수증·카드 → 전자(세금)계산서 발급\n' +
+'③ 「일괄 발급」 → [찾아보기]에서 방금 받은 엑셀 선택\n' +
+'   (다운로드 폴더의 홈택스일괄발행_….xls)\n' +
+'④ [검증] → 이상 없으면 [발급하기] → 인증서 서명\n\n' +
+'발급이 끝나면 아래 대장에서 상태를 「홈택스발행완료」로 바꿔 주세요.',
+'홈택스 일괄발급 순서');
+}, 600);
 }
 
 function renderTaxInstantConfirmCard() {
