@@ -15694,7 +15694,9 @@ function feeToTax() {
       set('taxRecvBizNo', rv.bizNo); set('taxRecvCompany', rv.company); set('taxRecvCeo', rv.ceo); set('taxRecvBizType', rv.bizType); set('taxRecvBizItem', rv.bizItem); set('taxRecvAddress', rv.address);
     }
     var em = document.getElementById('taxRecvEmail'); if (em && (c.cc || [])[0]) em.value = c.cc[0];
-    var its = (c.items || []).length && c.items.length <= 4 ? c.items : [{ name: '수수료', amount: c.total }];
+    // 수수료 계산서는 품목 하나 '영업수수료', 공급가액은 합계
+    var sumAmt = Number(c.total || 0) || (c.items || []).reduce(function(a, x) { return a + Number(x.amount || 0); }, 0);
+    var its = [{ name: '영업수수료', amount: sumAmt }];
     try { setTaxItemCondenseMode('manual'); } catch (e) {}
     renderTaxItemRows(its.map(function(it) { var a = Number(it.amount || 0); return { day: date, name: String(it.name || '수수료').slice(0, 40), spec: '', qty: 1, price: a, supplyAmount: a, taxAmount: Math.round(a * 0.1) }; }));
     try { validateTaxInvoiceReadiness(); } catch (e) {}
