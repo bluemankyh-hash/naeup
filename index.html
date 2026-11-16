@@ -10914,7 +10914,7 @@ var dias = diaM ? (diaM[1].match(/\d{3,4}/g) || ['200']) : ['200'];
 var outD = parseInt(dias[0] || 200, 10);
 var inBranchesArr = [];
 for (var k = 1; k < dias.length && k <= 5; k++) {
-inBranchesArr.push({ angle: angs[k] || '180', dia: String(dias[k]), dancha: hVals[k - 1] ? String(Math.max(0, Number((parseFloat(hVals[k - 1]) - 0.03).toFixed(2)))) : '' });
+inBranchesArr.push({ angle: angs[k] || '180', dia: String(dias[k]), dancha: hVals[k - 1] ? String(Number(parseFloat(hVals[k - 1]).toFixed(3))) : '' });
 }
 var spMh = bClean.match(/(MH-[0-9A-Za-z\-]+-)\s*[\s\S]*?(\d+\([차보]\))/);
 var mhNo = spMh ? (spMh[1] + spMh[2]) : ((bClean.match(/MH-[0-9A-Za-z\-]+(?:\([차보]\))?/) || [])[0] || ('MH-' + bNo));
