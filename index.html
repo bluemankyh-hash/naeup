@@ -8593,7 +8593,7 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 <span>➕</span> <span id="btnAddTaxQueueLabel">발행 대기에 담기 (0건)</span>
 </button>
 <button type="button" onclick="saveTaxInvoiceRecordOnly()" hidden style="background:#16a34a; color:#ffffff; border:none; height:44px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:5px;">
-<span>☁️</span> <span>세금계산서 대장·드라이브 저장</span>
+<span>🧾</span> <span>세금계산서 발행 · 드라이브 저장</span>
 </button>
 </div>
 
@@ -9737,6 +9737,20 @@ base64Excel = 'data:' + mime + ';base64,' + XLSX.write(wb, { bookType: 'biff8', 
 fileName = '홈택스일괄발행_' + (check.invoice.suppName || '').replace(/[\(\)\s]/g, '') + '_' + (check.invoice.recvCompany || '') + '_' + (check.invoice.writeDate || '') + '.xls';
 }
 saveTaxInvoiceToServerAndLocal(check.invoice, base64Excel, fileName, mime, false);
+// 발행: 엑셀을 이 기기에도 받고 → 홈택스 열기(ID 복사) → 순서 안내
+if (base64Excel) { try { var a = document.createElement('a'); a.href = base64Excel; a.download = fileName; document.body.appendChild(a); a.click(); a.remove(); } catch (eDl) {} }
+launchHometaxWithAutoSupplier('pc');
+var prof0 = (defaultCompanyProfiles[check.invoice.suppKey] || {});
+setTimeout(function() {
+showCustomAlert(
+'대장·드라이브에 저장하고, 엑셀을 받고, 홈택스를 새 창으로 열었어요.\n\n' +
+'① 홈택스 로그인 (' + (prof0.name || check.invoice.suppName || '') + ' · ID ' + (prof0.hometaxId || '') + ' 복사됨)\n' +
+'② 계산서·영수증·카드 → 전자(세금)계산서 발급 → 「일괄 발급」\n' +
+'③ [찾아보기]에서 ' + fileName + ' 선택\n' +
+'④ [검증] → [발급하기] → 인증서 서명\n\n' +
+'발급이 끝나면 대장에서 상태를 「홈택스발행완료」로 바꿔 주세요.',
+'홈택스 일괄발급 순서');
+}, 600);
 }
 
 function makeTaxInvoiceFingerprint(inv) {
