@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261117-1518';
+var APP_BUILD = '20261117-1520';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -6786,6 +6786,23 @@ window.print();
 // 인쇄 완료 후 전용 컨테이너 초기화
 printContainer.innerHTML = '';
 }
+/* 수신처에 사업자번호·주소·이메일이 비어 있으면 업체관리에서 같은 회사를 찾아 채우기 ('(주)'·띄어쓰기 달라도 같은 회사) */
+function fillRecvFromPartnerIfMissing_() {
+  try {
+    var g = function(id) { var el = document.getElementById(id); return el ? el.innerText.trim() : ''; };
+    var set = function(id, v) { var el = document.getElementById(id); if (el && v && !el.innerText.trim()) el.innerText = v; };
+    var comp = g('recvCompany'); if (!comp || (g('recvBizNo') && g('recvAddress'))) return false;
+    var norm = function(x) { return String(x || '').replace(/[A-Za-z]{2,}\s+/g, '').replace(/\(\s*주\s*\)|㈜|주식회사|[\s()（）]/g, ''); };
+    var nc = norm(comp), ph = g('recvTel').replace(/[^0-9]/g, '');
+    var bp = (allBizPartners || []).find(function(b) { var nb = norm(b.company); return nc && nb && (nb === nc || (nc.length >= 3 && (nb.indexOf(nc) >= 0 || nc.indexOf(nb) >= 0))); })
+      || (ph.length >= 9 ? (allBizPartners || []).find(function(b) { return String(b.contactTel || '').replace(/[^0-9]/g, '').slice(-8) === ph.slice(-8); }) : null);
+    if (!bp) return false;
+    var el = document.getElementById('recvCompany'); if (el && bp.company) el.innerText = bp.company; // 업체관리의 정식 상호로
+    set('recvBizNo', bp.bizNo); set('recvEmail', bp.contactEmail || bp.compEmail);
+    var ad = document.getElementById('recvAddress'); if (ad && bp.address && ad.innerText.trim().length < 6) ad.innerText = bp.address;
+    return true;
+  } catch (e) { return false; }
+}
 function saveAndExportDrivePdf() {
 const proj = document.getElementById('fieldProject').innerText.trim();
 if (!proj) {
@@ -6796,6 +6813,7 @@ const overlay = document.getElementById('loadingOverlay');
 const loadingText = document.getElementById('loadingText');
 if (overlay) overlay.style.display = 'flex';
 if (loadingText) loadingText.innerText = "구글 드라이브에 PDF 생성 및 보관 중...";
+fillRecvFromPartnerIfMissing_();
 const docPayload = getDocumentDataPayload();
 google.script.run.handleAction({ action: "saveDocument", doc: docPayload });
 function toKoreanDate(val) {
@@ -12675,10 +12693,19 @@ document.getElementById('recvCompany').innerText = comp;
 document.getElementById('recvContact').innerText = contact;
 document.getElementById('recvTel').innerText = phone;
 // 거래처 목록에 있으면 사업자번호·주소·메일도 함께 채움
-var bp = comp ? (allBizPartners || []).find(function(b) { return b.company === comp; }) : null;
+// '(주)', '주식회사', 띄어쓰기가 달라도 같은 회사로 보고, 담당자 전화로도 찾기
+var normCo = function(x) { return String(x || '').replace(/\(\s*주\s*\)|㈜|주식회사|[\s()（）]/g, ''); };
+var nc = normCo(comp), ph = String(phone || '').replace(/[^0-9]/g, '');
+var bp = (allBizPartners || []).find(function(b) { var nb = normCo(b.company); return nc && nb && (nb === nc || (nc.length >= 3 && (nb.indexOf(nc) >= 0 || nc.indexOf(nb) >= 0))); })
+  || (ph.length >= 9 ? (allBizPartners || []).find(function(b) { return String(b.contactTel || '').replace(/[^0-9]/g, '') === ph; }) : null);
 if (bp) {
-var setIf = function(id, v) { var el = document.getElementById(id); if (el && v) el.innerText = v; };
-setIf('recvBizNo', bp.bizNo); setIf('recvAddress', bp.address); setIf('recvEmail', bp.contactEmail || bp.compEmail);
+applyQuickBizPartner(bp.id);
+// 추출한 담당자·연락처가 있으면 그걸 우선
+if (contact) document.getElementById('recvContact').innerText = (bp.ceo ? bp.ceo + ' / ' : '') + contact;
+if (phone) document.getElementById('recvTel').innerText = phone;
+var em = bp.contactEmail || bp.compEmail; if (em) document.getElementById('recvEmail').innerText = em;
+} else if (comp) {
+showToast('ℹ️ [' + comp + ']이(가) 업체관리에 없어서 사업자번호·주소는 비어 있어요. 업체관리에 등록하면 다음부터 자동으로 들어가요.');
 }
 var tbody = document.getElementById('itemsBody');
 tbody.innerHTML = '';
@@ -15041,6 +15068,7 @@ function v3DocFromSaved(id){
   var type = window.currentDocType || 'PO';
   var r = (window.allDocRecords || []).find(function(x){ return String(x.id) === String(id); }); if (!r) return;
   openDocWriterFromSaved(id);
+  setTimeout(fillRecvFromPartnerIfMissing_, 150);
   if (v3DocCode(r) !== type) {
     currentEditingDocId = null;
     v3DocTab(type);
