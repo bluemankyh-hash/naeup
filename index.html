@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261117-1512';
+var APP_BUILD = '20261117-1518';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -7196,9 +7196,15 @@ if (msgEl) msgEl.innerText = msg;
 if (modal) modal.style.display = 'flex';
 }
 function openGeneratedPdf() {
-if (lastGeneratedPdfUrl) {
-window.open(lastGeneratedPdfUrl, '_blank');
-}
+if (!lastGeneratedPdfUrl) return;
+// 휴대폰 브라우저는 저장이 끝난 뒤 새 창을 자동으로 열면 '팝업 차단'을 해서, 누르면 열리는 버튼으로 보여 줌
+var old = document.getElementById('pdfReadyBar'); if (old) old.remove();
+var bar = document.createElement('div'); bar.id = 'pdfReadyBar';
+bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:18px;z-index:100070;background:#111827;color:#fff;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:14px';
+bar.innerHTML = '<span style="flex:1">☁️ PDF를 드라이브에 저장했어요</span><a href="' + lastGeneratedPdfUrl + '" target="_blank" rel="noopener" style="background:#1F5FD6;color:#fff;text-decoration:none;font-weight:700;padding:8px 12px;border-radius:10px">📄 열기</a><button type="button" style="background:none;border:none;color:#9CA3AF;font-size:18px" aria-label="닫기">✕</button>';
+bar.querySelector('button').onclick = function() { bar.remove(); };
+document.body.appendChild(bar);
+setTimeout(function() { if (bar.parentNode) bar.remove(); }, 15000);
 }
 function updateAllDropdowns() {
 filterGenLogContacts('');
@@ -15831,6 +15837,35 @@ function feeToTax() {
     var it = (exiData && exiData.list || []).filter(function(x) { return String(x.id) === String(id); })[0];
     if (feeIsCommission_(it)) return openCommissionFlow(id);
     return orig.apply(this, arguments);
+  };
+})();
+</script>
+<script>
+/* 파일추출 → [문서 작성]: 견적서·발주서·거래명세서 중 고르고 넘어가기 */
+function v3ChooseDocType(cb){
+  var old = document.getElementById('v3DocChooser'); if (old) old.remove();
+  var w = document.createElement('div'); w.id = 'v3DocChooser';
+  w.style.cssText = 'position:fixed;inset:0;z-index:100050;background:rgba(15,23,42,.45);display:flex;align-items:flex-end;justify-content:center';
+  var b = 'display:block;width:100%;height:54px;margin:8px 0;border-radius:14px;border:1px solid #E5E7EB;background:#fff;font-size:17px;font-weight:700;color:#111827';
+  w.innerHTML = '<div style="background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))">' +
+    '<div style="font-size:15px;font-weight:800;margin-bottom:6px">어떤 문서로 만들까요?</div>' +
+    '<button type="button" data-t="EST" style="' + b + '">📝 견적서</button>' +
+    '<button type="button" data-t="PO" style="' + b + '">📦 발주서</button>' +
+    '<button type="button" data-t="TAX" style="' + b + '">🧾 거래명세서</button>' +
+    '<button type="button" data-t="" style="' + b + ';border:none;color:#64748B;font-weight:500">취소</button></div>';
+  w.onclick = function(e){ var t = e.target.closest('button'); if (e.target === w || (t && !t.dataset.t)) { w.remove(); return; } if (t) { w.remove(); cb(t.dataset.t); } };
+  document.body.appendChild(w);
+}
+(function(){
+  if (typeof applyPortalExtractToDocWriter !== 'function') return;
+  var orig = applyPortalExtractToDocWriter;
+  applyPortalExtractToDocWriter = function(){
+    if (!(window.portalExtractItems || []).length && typeof portalExtractItems !== 'undefined' && !portalExtractItems.length) return orig.apply(this, arguments);
+    var self = this, args = arguments;
+    v3ChooseDocType(function(type){
+      orig.apply(self, args);
+      setTimeout(function(){ try { v3DocTab(type); } catch (e) {} try { if (typeof v3SyncTitle === 'function') v3SyncTitle(); } catch (e2) {} }, 80);
+    });
   };
 })();
 </script>
