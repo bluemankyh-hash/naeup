@@ -12910,11 +12910,17 @@ openExternalManholeAutoOrderApp(); switchPortalParserTab('po'); handlePortalGene
 openDocWriterNew(); handleOrderDocUpload(ev);
 } else if (ty === '사업자등록증') {
 openBizModal();
-setTimeout(function() {
-var inp = document.getElementById('cameraBizInput');
-try { var dt = new DataTransfer(); dt.items.add(file); inp.files = dt.files; inp.dispatchEvent(new Event('change')); }
-catch (eDt) { showToast('⚠️ 이 브라우저는 자동 넣기를 지원하지 않아요. 사업자등록증 [촬영]으로 직접 올려 주세요.'); }
-}, 300);
+// 추출함에서 이미 읽어 둔 글로 바로 채우기 (휴대폰은 파일을 칸에 자동으로 넣을 수 없음)
+google.script.run.withSuccessHandler(function(rb) {
+if (!rb || !rb.success || !rb.data) { showToast('⚠️ ' + ((rb && rb.error) || '사업자등록증을 읽지 못했어요')); return; }
+var d = rb.data, set = function(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; };
+try { if (typeof resetBizForm === 'function') resetBizForm(); } catch (eRs) {}
+set('bmCompany', d.company); set('bmCeo', d.ceo); set('bmBizNo', d.bizNo); set('bmAddress', d.address);
+set('bmBizType', [d.bizType, d.bizItem].filter(Boolean).join(' / ')); if (d.tel) set('bmTel', d.tel); if (d.email) set('bmCompEmail', d.email);
+var st = document.getElementById('bizAiStatus');
+if (st) { st.style.color = (d.company || d.bizNo) ? '#15803d' : '#ef4444'; st.innerText = (d.company || d.bizNo) ? '✨ 추출함 사업자등록증으로 칸을 채웠어요 (' + [d.company, d.bizNo].filter(Boolean).join(' · ') + '). 확인 후 저장을 눌러 주세요.' : '⚠️ 글자를 읽지 못했어요. [사업자등록증 사진·PDF로 채우기]로 다시 올려 주세요.'; }
+try { var f1 = document.getElementById('bmCompany'); if (f1) f1.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (eSc) {}
+}).withFailureHandler(function(e) { showToast('❌ ' + (e.message || e)); }).getBizFromExtractBackend(id);
 } else if (ty === '명함') {
 openSection('contactBookSection');
 if (typeof resetContactForm === 'function') resetContactForm();
