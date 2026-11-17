@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261117-1520';
+var APP_BUILD = '20261117-1523';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -4696,14 +4696,21 @@ if (!uid) return;
 const list = getUnifiedDocContactList();
 const c = list.find(item => String(item.uid) === String(uid));
 if (!c) return;
-const matchedBiz = (allBizPartners || []).find(b => b.company && c.org && b.company.trim() === c.org.trim() && b.bizNo);
-document.getElementById('recvCompany').innerText = c.org || c.name || '';
-document.getElementById('recvBizNo').innerText = c.bizNo || (matchedBiz ? matchedBiz.bizNo : '');
-document.getElementById('recvContact').innerText = `${c.name}${c.role ? ' ' + c.role : ''}`.trim();
-document.getElementById('recvAddress').innerText = (matchedBiz && matchedBiz.address) ? matchedBiz.address : (c.address || c.region || '');
-document.getElementById('recvTel').innerText = c.phone || (matchedBiz ? matchedBiz.tel : '') || '';
-document.getElementById('recvEmail').innerText = c.email || (matchedBiz ? matchedBiz.compEmail : '') || '';
-showToast(`👤 [${c.org ? c.org + ' ' : ''}${c.name}] 담당자 정보가 수신처에 반영되었습니다.`);
+// 담당자를 고르면 담당자 칸(이름·전화·메일)만 바꾸고, 상호·등록번호·주소는 비어 있을 때만 채움 (먼저 고른 거래처를 덮어쓰지 않음)
+const normCo = x => String(x || '').replace(/[A-Za-z]{2,}\s+/g, '').replace(/\(\s*주\s*\)|㈜|주식회사|[\s()（）]/g, '');
+const el = id => document.getElementById(id);
+const cur = el('recvCompany').innerText.trim();
+const findBiz = name => { const n = normCo(name); return n ? (allBizPartners || []).find(b => { const nb = normCo(b.company); return nb && (nb === n || (n.length >= 3 && (nb.indexOf(n) >= 0 || n.indexOf(nb) >= 0))); }) : null; };
+const biz = findBiz(cur) || findBiz(c.org);
+const setIfEmpty = (id, v) => { const e = el(id); if (e && v && !e.innerText.trim()) e.innerText = v; };
+if (!cur) el('recvCompany').innerText = (biz && biz.company) || c.org || c.name || '';
+setIfEmpty('recvBizNo', (biz && biz.bizNo) || c.bizNo);
+const ad = el('recvAddress'); if (ad && ad.innerText.trim().length < 6) ad.innerText = (biz && biz.address) || ad.innerText.trim() || c.address || c.region || '';
+const person = `${c.name}${c.role ? ' ' + c.role : ''}`.trim();
+el('recvContact').innerText = (biz && biz.ceo ? biz.ceo + ' / ' : '') + person;
+if (c.phone) el('recvTel').innerText = c.phone; else setIfEmpty('recvTel', biz && biz.tel);
+if (c.email) el('recvEmail').innerText = c.email; else setIfEmpty('recvEmail', biz && (biz.contactEmail || biz.compEmail));
+showToast(`👤 [${c.name}] 담당자를 넣었어요` + (cur ? ' (거래처 정보는 그대로)' : ''));
 }
 const DOC_FLOW_STEPS = ['견적', '발주', '제작', '출고', '수금'];
 // 완료(대장제외)된 문서인지: 진행단계가 '완료'이거나 시트 Y열에 표시가 있으면 완료
