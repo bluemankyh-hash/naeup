@@ -12800,6 +12800,11 @@ google.script.run
 if (!res || !res.success) { if (st) st.innerText = '❌ ' + ((res && res.error) || '불러오기 실패') + ' — 편집기에서 setupExtractInbox를 한 번 실행해 주세요'; return; }
 exiData = res;
 renderExtractQueue();
+// 추출함 폴더에 아직 안 읽은 파일이 있으면 10분 기다리지 않고 바로 읽기 (1분에 한 번까지)
+if (res.unprocessedFiles > 0 && (!window._exiAutoRunAt || Date.now() - window._exiAutoRunAt > 60000)) {
+window._exiAutoRunAt = Date.now();
+runExtractInboxNow();
+}
 })
 .withFailureHandler(function(err) { if (st) st.innerText = '❌ ' + (err.message || err); })
 .getExtractQueueBackend({ showDone: !!(document.getElementById('exiShowDone') || {}).checked });
