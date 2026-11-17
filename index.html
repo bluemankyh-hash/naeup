@@ -274,6 +274,28 @@
 <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>
+/* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
+var APP_BUILD = '20261117-1459';
+(function() {
+  try {
+    if (!/^\d{8}/.test(APP_BUILD)) return;
+    fetch(location.pathname + '?cb=' + Date.now(), { cache: 'no-store' }).then(function(r) { return r.ok ? r.text() : ''; }).then(function(t) {
+      var m = t && t.match(/var APP_BUILD = '(\d{8}[^']*)'/);
+      if (m && m[1] !== APP_BUILD) {
+        var key = 'naeup_reload_' + m[1];
+        try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch (e) {}
+        location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]) + location.hash);
+      }
+    }).catch(function() {});
+    document.addEventListener('DOMContentLoaded', function() {
+      var tag = document.createElement('div'); tag.textContent = '버전 ' + APP_BUILD.replace(/^(\d{4})(\d{2})(\d{2})-?(\d{2})?(\d{2})?.*/, '$2-$3 $4:$5');
+      tag.style.cssText = 'position:fixed;left:6px;bottom:4px;font-size:10px;color:#94A3B8;z-index:5;pointer-events:none';
+      document.body.appendChild(tag);
+    });
+  } catch (e) {}
+})();
+</script>
 <script>/* pdf.js 글자 조각을 위치대로 이어 붙여 줄 단위 글로 (한 글자씩 끊긴 PDF 대비) */
 function pdfItemsToText_(items) {
   var its = (items || []).filter(function(t) { return t && t.str && t.transform; }).map(function(t) {
