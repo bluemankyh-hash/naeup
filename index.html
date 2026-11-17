@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261117-1523';
+var APP_BUILD = '20261117-1526';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -12695,7 +12695,18 @@ var memo = document.getElementById('exMemo').value.trim();
 closeSection('manholeOrderSection');
 openDocWriterNew();
 document.getElementById('fieldProject').innerText = site;
-if (site) document.getElementById('fieldLocation').innerText = site;
+// 납품장소: 공사명을 그대로 넣지 않고, 서류에 적힌 납품장소·현장주소 → 같은 현장의 예전 서류 납품장소 순으로 찾고, 없으면 비워 둠
+(function() {
+  var m = portalExtractMeta || {}, loc = m.siteAddress || m.location || '';
+  if (!loc && m.rawText) { var mm = String(m.rawText).match(/(?:납\s*품\s*장\s*소|현\s*장\s*주\s*소|하\s*차\s*장\s*소|인\s*도\s*장\s*소)\s*[:：]?\s*([^\n]{4,60})/); if (mm) loc = mm[1].trim(); }
+  if (!loc && site) {
+    var ns = site.replace(/\s+/g, '');
+    var prev = (window.allDocRecords || []).filter(function(r) { return r && r.location && String(r.project || '').replace(/\s+/g, '') === ns && String(r.location).replace(/\s+/g, '') !== ns && !/지정장소/.test(r.location); })
+      .sort(function(a, b) { return String(b.date || '').localeCompare(String(a.date || '')); })[0];
+    if (prev) loc = prev.location;
+  }
+  var fl = document.getElementById('fieldLocation'); if (fl) fl.innerText = loc || '';
+})();
 document.getElementById('recvCompany').innerText = comp;
 document.getElementById('recvContact').innerText = contact;
 document.getElementById('recvTel').innerText = phone;
