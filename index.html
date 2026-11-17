@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261117-1459';
+var APP_BUILD = '20261117-1505';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -7064,6 +7064,7 @@ return;
 if (bizStatus) {
 bizStatus.style.color = "#15803d";
 bizStatus.innerText = "✨ 사업자등록증을 읽어서 칸을 채웠어요 (" + [compVal, bizNoVal].filter(Boolean).join(" · ") + "). 확인 후 저장을 눌러 주세요.";
+try { if (typeof v3BizForm === 'function') v3BizForm(true); } catch (eV3) {}
 }
 showToast("✅ 사업자등록증 읽기 완료 · 확인 후 저장");
 } else {
@@ -7872,6 +7873,7 @@ if (d.address && document.getElementById('addContAddress')) document.getElementB
 var memoEl = document.getElementById('addContMemo');
 if (memoEl && !memoEl.value && (d.site || d.siteAddress)) memoEl.value = '현장: ' + [d.site, d.siteAddress].filter(Boolean).join(' · ');
 if (statusEl) statusEl.innerText = `✅ ${d.name || '담당자'} 명함 자동 입력 및 [업무자료_명함] 저장 완료!`;
+try { if (typeof v3ContactForm === 'function') v3ContactForm(true); } catch (eV3) {}
 showToast(`✅ 명함 인식 및 [업무자료_명함] 폴더 저장 완료: ${d.name || ''}`);
 } else {
 const err = cardOcrErrText_(res);
@@ -15159,7 +15161,7 @@ function v3ContactForm(open){
   if (sec && search && form) {
     search.placeholder = '🔍 이름·소속·전화 검색';
     var tools = document.createElement('div'); tools.className = 'v3-tools';
-    tools.innerHTML = '<button type="button" class="v3-pill" style="flex:1" onclick="resetContactForm(); v3ContactForm(true)">+ 새 담당자</button><button type="button" class="v3-pill" style="flex:1" onclick="document.getElementById(\'contactCardInput\').click(); v3ContactForm(true)">📷 명함 촬영</button>';
+    tools.innerHTML = '<button type="button" class="v3-pill" style="flex:1" onclick="var _sec=document.getElementById(\'contactBookSection\'), _n=document.getElementById(\'addContName\'); if(!(_sec && !_sec.classList.contains(\'v3-form-open\') && _n && _n.value)) resetContactForm(); v3ContactForm(true)">+ 새 담당자</button><button type="button" class="v3-pill" style="flex:1" onclick="document.getElementById(\'contactCardInput\').click(); v3ContactForm(true)">📷 명함 촬영</button>';
     var title = sec.querySelector('.section-title');
     sec.insertBefore(search, title ? title.nextSibling : sec.firstChild);
     sec.insertBefore(tools, search.nextSibling);
@@ -15206,7 +15208,7 @@ function v3RenderBizList(kw){
   search.placeholder = '🔍 상호·사업자번호·대표자 검색';
   search.style.height = '44px';
   var tools = document.createElement('div'); tools.className = 'v3-tools'; tools.style.marginTop = '10px';
-  tools.innerHTML = '<button type="button" class="v3-pill" style="flex:1" onclick="resetBizForm(); v3BizForm(true)">+ 새 거래처</button><button type="button" class="v3-pill" style="flex:1" onclick="resetBizForm(); v3BizForm(true); document.getElementById(\'cameraBizInput\').click()">📷 사업자등록증</button>';
+  tools.innerHTML = '<button type="button" class="v3-pill" style="flex:1" onclick="var _m=document.getElementById(\'bizModal\'), _c=document.getElementById(\'bmCompany\'); if(!(_m && !_m.classList.contains(\'v3-form-open\') && _c && _c.value)) resetBizForm(); v3BizForm(true)">+ 새 거래처</button><button type="button" class="v3-pill" style="flex:1" onclick="resetBizForm(); v3BizForm(true); document.getElementById(\'cameraBizInput\').click()">📷 사업자등록증</button>';
   search.parentNode.parentNode.insertBefore(tools, search.parentNode.nextSibling);
   var lb = document.createElement('div'); lb.id = 'v3BizList';
   tools.parentNode.insertBefore(lb, tools.nextSibling);
