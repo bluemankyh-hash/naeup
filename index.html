@@ -12924,7 +12924,7 @@ set('bmCompany', d.company); set('bmCeo', d.ceo); set('bmBizNo', d.bizNo); set('
 set('bmBizType', [d.bizType, d.bizItem].filter(Boolean).join(' / ')); if (d.tel) set('bmTel', d.tel); if (d.email) set('bmCompEmail', d.email);
 var st = document.getElementById('bizAiStatus');
 if (st) { st.style.color = (d.company || d.bizNo) ? '#15803d' : '#ef4444'; st.innerText = (d.company || d.bizNo) ? '✨ 추출함 사업자등록증으로 칸을 채웠어요 (' + [d.company, d.bizNo].filter(Boolean).join(' · ') + '). 확인 후 저장을 눌러 주세요.' : '⚠️ 글자를 읽지 못했어요. [사업자등록증 사진·PDF로 채우기]로 다시 올려 주세요.'; }
-try { var f1 = document.getElementById('bmCompany'); if (f1) f1.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (eSc) {}
+try { if (typeof v3BizForm === 'function') v3BizForm(true); var f1 = document.getElementById('bmCompany'); if (f1) setTimeout(function() { f1.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120); } catch (eSc) {}
 }).withFailureHandler(function(e) { showToast('❌ ' + (e.message || e)); }).getBizFromExtractBackend(id);
 } else if (ty === '명함') {
 openSection('contactBookSection');
