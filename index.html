@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261117-1505';
+var APP_BUILD = '20261117-1512';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -14981,17 +14981,27 @@ function v3DocCode(r){
   var f = String(r && r.flowStatus || ''); if (f === '견적') return 'EST'; if (f === '출고' || f === '수금') return 'TAX';
   return 'PO';
 }
+/* 검색: 띄어쓰기로 나눈 낱말이 모두 들어 있거나, 글자가 순서대로 들어 있으면 찾기 (예: '대지건설' → 대지종합건설) */
+function v3Match(hay, q){
+  hay = String(hay || '').toLowerCase(); q = String(q || '').toLowerCase().trim(); if (!q) return true;
+  var h = hay.replace(/\s+/g, '');
+  if (q.split(/\s+/).every(function(t){ return h.indexOf(t) >= 0; })) return true;
+  var qq = q.replace(/\s+/g, ''), j = 0;
+  if (qq.length < 2) return false;
+  for (var i = 0; i < h.length && j < qq.length; i++) if (h[i] === qq[j]) j++;
+  return j === qq.length;
+}
 function v3RenderDocSrc(){
   var box = document.getElementById('v3DocSrc'); if (!box) return;
   var type = window.currentDocType || 'PO', src = V3_SRC[type] || [];
   var q = v3SrcQ.trim().toLowerCase();
   var docs = (window.allDocRecords || []).filter(function(r){ return src.indexOf(v3DocCode(r)) >= 0; }).filter(function(r){
-    return !q || [r.project, r.recvCompany, r.mainContractor, r.date].join(' ').toLowerCase().indexOf(q) >= 0;
+    return !q || v3Match([r.project, r.recvCompany, r.mainContractor, r.date].join(' '), q);
   }).sort(function(a, b){ return String(b.date || '').localeCompare(String(a.date || '')); });
   var rows = [];
   if (type === 'EST') {
     (window.exiData && exiData.list || []).filter(function(it){ return exiTypeOf_(it) === '견적·명세' && ['완료', '제외', '중복'].indexOf(it.status) < 0; }).forEach(function(it){
-      if (q && [it.company, it.site, it.name].join(' ').toLowerCase().indexOf(q) < 0) return;
+      if (q && !v3Match([it.company, it.site, it.name].join(' '), q)) return;
       rows.push(v3Row('추출함', 'blue', v3Esc(it.site || it.company || it.name), v3Esc([it.company, it.at, it.total ? v3Won(it.total) : ''].filter(Boolean).join(' · ')), "v3DocFromExtract('" + v3Esc(it.id) + "')"));
     });
   }
@@ -15003,9 +15013,16 @@ function v3RenderDocSrc(){
   var title = (type === 'EST' ? '추출함 견적·명세 · 예전 견적서' : (srcName ? '저장된 ' + srcName + '에서 불러오기' : '예전 서류')) ;
   var LIMIT = 5, shown = v3SrcAll ? rows : rows.slice(0, LIMIT);
   var extra = type === 'PO' ? '<div class="v3-srcbar" style="padding-top:0"><button type="button" class="v3-pill" style="flex:1" onclick="v3Go(\'order_manhole\')">맨홀발주에서</button><button type="button" class="v3-pill" style="flex:1" onclick="v3Go(\'order_po\')">일반발주에서</button></div>' : '';
-  box.innerHTML = '<div class="v3-lh"><span>' + title + '</span><button type="button" onclick="v3NewDoc()">새로 쓰기</button></div>' +
-    '<div class="v3-srcbar"><input type="search" placeholder="🔍 공사명·거래처 검색" value="' + v3Esc(v3SrcQ) + '" oninput="v3SrcQ=this.value; v3RenderDocSrc(); var i=document.querySelector(\'#v3DocSrc input\'); if(i){i.focus(); i.setSelectionRange(i.value.length,i.value.length);}"><button type="button" class="v3-pill" onclick="document.getElementById(\'v3DocFile\').click()">📄 파일에서 추출</button></div>' + extra +
-    (shown.length ? shown.join('') : '<div class="v3-empty">불러올 서류가 없어요. 새로 쓰거나 파일에서 추출해 주세요.</div>') +
+  // 검색칸은 한 번만 만들고 목록만 다시 그리기 (한글 입력 중 칸이 새로 생기면 'ㄷㅐ'처럼 끊김)
+  if (box.dataset.type !== type || !document.getElementById('v3SrcQ')) {
+    box.dataset.type = type;
+    box.innerHTML = '<div class="v3-lh"><span id="v3SrcTitle"></span><button type="button" onclick="v3NewDoc()">새로 쓰기</button></div>' +
+      '<div class="v3-srcbar"><input type="search" id="v3SrcQ" placeholder="🔍 공사명·거래처 검색" value="' + v3Esc(v3SrcQ) + '" oninput="v3SrcQ=this.value; v3RenderDocSrc();"><button type="button" class="v3-pill" onclick="document.getElementById(\'v3DocFile\').click()">📄 파일에서 추출</button></div>' +
+      '<div id="v3SrcExtra"></div><div id="v3SrcList"></div>';
+  }
+  document.getElementById('v3SrcTitle').textContent = title;
+  document.getElementById('v3SrcExtra').innerHTML = extra;
+  document.getElementById('v3SrcList').innerHTML = (shown.length ? shown.join('') : '<div class="v3-empty">' + (q ? '「' + v3Esc(v3SrcQ) + '」에 맞는 서류가 없어요.' : '불러올 서류가 없어요. 새로 쓰거나 파일에서 추출해 주세요.') + '</div>') +
     (rows.length > LIMIT ? '<button type="button" class="v3-srcmore" onclick="v3SrcAll=!v3SrcAll; v3RenderDocSrc();">' + (v3SrcAll ? '접기' : '더 보기 (' + rows.length + '건)') + '</button>' : '');
   if (type === 'EST' && !v3ExLoaded) {
     v3ExLoaded = true;
