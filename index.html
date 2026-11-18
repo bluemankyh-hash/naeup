@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-0421';
+var APP_BUILD = '20261119-0437';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -6742,7 +6742,8 @@ amount: tr.querySelector('.item-amount').innerText.replace(/[^\d]/g, ''),
 note: tr.querySelector('.item-note').value,
 basePrice: tr.dataset.basePrice || 0,
 calcDesc: tr.dataset.calcDesc || '',
-exRaw: tr.dataset.exRaw || undefined, exName: tr.dataset.exName, exQty: tr.dataset.exQty, exPrice: tr.dataset.exPrice, exUnit: tr.dataset.exUnit
+exRaw: tr.dataset.exRaw || undefined, exName: tr.dataset.exName, exQty: tr.dataset.exQty, exPrice: tr.dataset.exPrice, exUnit: tr.dataset.exUnit,
+exAi: tr.dataset.exAi || undefined, exRule: tr.dataset.exRule || undefined
 });
 // 한 번 보낸 수정은 다시 배우지 않게 기준값을 지금 값으로 바꿔 둠 (PDF 저장 등으로 여러 번 저장해도 로그 중복 없음)
 if (tr.dataset.exRaw) {
@@ -6750,6 +6751,7 @@ var _r = (parseFloat(document.getElementById('docRateInput').value) || 100) / 10
 tr.dataset.exName = tr.querySelector('.item-name-input').value.trim();
 tr.dataset.exQty = String(tr.querySelector('.item-qty').value).trim();
 tr.dataset.exUnit = String(tr.querySelectorAll('input')[1].value).trim();
+delete tr.dataset.exAi; delete tr.dataset.exRule;   // 불일치 기록은 첫 저장 때 한 번만
 var _p = Number(tr.querySelector('.item-price').value.replace(/[^\d]/g, '')) || 0;
 if (_p > 0) tr.dataset.exPrice = String(Math.round(_p / _r));
 }
@@ -7964,7 +7966,22 @@ if (d.region) document.getElementById('addContRegion').value = d.region;
 if (d.address && document.getElementById('addContAddress')) document.getElementById('addContAddress').value = d.address;
 var memoEl = document.getElementById('addContMemo');
 if (memoEl && !memoEl.value && (d.site || d.siteAddress)) memoEl.value = '현장: ' + [d.site, d.siteAddress].filter(Boolean).join(' · ');
-if (statusEl) statusEl.innerText = `✅ ${d.name || '담당자'} 명함 자동 입력 및 [업무자료_명함] 저장 완료!`;
+if (statusEl) statusEl.innerText = `✅ ${d.name || '담당자'} 명함 자동 입력 및 [업무자료_명함] 저장 완료!` + (res.aiStatus ? ' · ' + res.aiStatus : '');
+// AI·규칙이 다르게 읽은 칸은 노랗게 + 아래에 두 값을 나란히 (누르면 AI 값으로 바꿈)
+try {
+var cmap = { name: 'addContName', company: 'addContOrg', position: 'addContRole', phone: 'addContPhone', email: 'addContEmail' };
+Object.keys(cmap).forEach(function(k) { var el = document.getElementById(cmap[k]); if (el) { el.style.background = ''; el.title = ''; } });
+var old = document.getElementById('contactCardDiffs'); if (old) old.remove();
+if (res.cardDiffs && res.cardDiffs.length) {
+var box = document.createElement('div'); box.id = 'contactCardDiffs';
+box.style.cssText = 'margin-top:6px; padding:6px 8px; background:#FFFBEB; border:1px solid #FCD34D; border-radius:8px; font-size:12px; color:#92400E; line-height:1.6;';
+box.innerHTML = res.cardDiffs.map(function(df, i) {
+var el = document.getElementById(cmap[df.field]); if (el) { el.style.background = '#FEF3C7'; el.title = '⚠ 불일치 (AI: ' + df.ai + ' / 규칙: ' + df.rule + ')'; }
+return '⚠ 불일치 ' + df.label + ' (AI: <b>' + escapeHtmlAttr_(df.ai) + '</b> / 규칙: <b>' + escapeHtmlAttr_(df.rule) + '</b>) <button type="button" data-f="' + df.field + '" data-v="' + escapeHtmlAttr_(df.ai) + '" onclick="var e=document.getElementById({name:\'addContName\',company:\'addContOrg\',position:\'addContRole\',phone:\'addContPhone\',email:\'addContEmail\'}[this.dataset.f]); if(e){e.value=this.dataset.v; e.style.background=\'\';} this.disabled=true; this.innerText=\'AI 값 넣음\';" style="margin-left:4px; border:1px solid #F59E0B; background:#fff; color:#B45309; border-radius:6px; padding:1px 6px; font-size:11px; font-weight:700; cursor:pointer;">AI 값으로</button>';
+}).join('<br>');
+if (statusEl && statusEl.parentNode) statusEl.parentNode.insertBefore(box, statusEl.nextSibling);
+}
+} catch (eDf) {}
 try { if (typeof v3ContactForm === 'function') v3ContactForm(true); } catch (eV3) {}
 showToast(`✅ 명함 인식 및 [업무자료_명함] 폴더 저장 완료: ${d.name || ''}`);
 } else {
@@ -12315,7 +12332,7 @@ function portalManholeAiCheck_(file, pdfLines, statusEl) {
     var base = statusEl ? statusEl.innerText : '';
     if (statusEl) statusEl.innerText = base + '\n🤖 AI가 한 번 더 읽고 대조하는 중…';
     google.script.run.withSuccessHandler(function(r) {
-      if (!r || !r.success || !r.data) { if (statusEl) statusEl.innerText = base + '\nℹ️ AI 대조 안 됨' + (r && r.error ? ': ' + r.error : ''); return; }
+      if (!r || !r.success || !r.data) { if (statusEl) statusEl.innerText = base + '\n⚠ AI 미검증(규칙 단독)' + (r && r.error ? ' — ' + r.error : ''); return; }
       var d = r.data, blocks = d.blocks || [];
       var num = function(v) { var n = parseFloat(String(v == null ? '' : v).replace(/[^\d.]/g, '')); return isNaN(n) ? null : n; };
       if (!(portalManholeItems || []).length && blocks.length) {
@@ -12333,19 +12350,19 @@ function portalManholeAiCheck_(file, pdfLines, statusEl) {
       (portalManholeItems || []).forEach(function(it, i) {
         var b = blocks[i]; if (!b) return;
         var tag = 'NO.' + (it.no || i + 1);
-        if (num(b.heightMm) && Math.abs(num(b.heightMm) - num(it.heightMm)) > 5) diffs.push(tag + ' 높이 ' + it.heightMm + '↔AI ' + b.heightMm);
-        if (b.out && num(b.out.dia) && num(b.out.dia) !== num(it.outDia)) diffs.push(tag + ' OUT관경 ' + it.outDia + '↔AI ' + b.out.dia);
+        if (num(b.heightMm) && Math.abs(num(b.heightMm) - num(it.heightMm)) > 5) diffs.push(tag + ' 높이 ⚠ 불일치 (AI: ' + b.heightMm + ' / 규칙: ' + it.heightMm + ')');
+        if (b.out && num(b.out.dia) && num(b.out.dia) !== num(it.outDia)) diffs.push(tag + ' OUT관경 ⚠ 불일치 (AI: ' + b.out.dia + ' / 규칙: ' + it.outDia + ')');
         var ins = (b.ins || []).filter(function(x) { return x && num(x.dia); }), mine = (it.inBranches || []).filter(function(x) { return x && num(x.dia); });
         ins.forEach(function(x, k) {
           var m = mine[k] || {};
-          if (num(x.angle) != null && num(m.angle) !== num(x.angle)) diffs.push(tag + ' IN' + (k + 1) + ' 각도 ' + (m.angle || '-') + '↔AI ' + x.angle);
-          if (num(x.dancha) != null && Math.abs((num(m.dancha) || 0) - num(x.dancha)) > 0.005) diffs.push(tag + ' IN' + (k + 1) + ' 단차 ' + (m.dancha || 0) + '↔AI ' + x.dancha);
+          if (num(x.angle) != null && num(m.angle) !== num(x.angle)) diffs.push(tag + ' IN' + (k + 1) + ' 각도 ⚠ 불일치 (AI: ' + x.angle + ' / 규칙: ' + (m.angle || '-') + ')');
+          if (num(x.dancha) != null && Math.abs((num(m.dancha) || 0) - num(x.dancha)) > 0.005) diffs.push(tag + ' IN' + (k + 1) + ' 단차 ⚠ 불일치 (AI: ' + x.dancha + ' / 규칙: ' + (m.dancha || 0) + ')');
         });
       });
-      if (blocks.length !== (portalManholeItems || []).length) diffs.unshift('맨홀 개수 ' + portalManholeItems.length + '↔AI ' + blocks.length);
+      if (blocks.length !== (portalManholeItems || []).length) diffs.unshift('맨홀 개수 ⚠ 불일치 (AI: ' + blocks.length + ' / 규칙: ' + portalManholeItems.length + ')');
       if (statusEl) statusEl.innerText = base + (diffs.length ? '\n⚠️ 🤖 AI와 다른 칸이 있어요 — 원본을 보고 확인해 주세요:\n· ' + diffs.slice(0, 8).join('\n· ') : '\n✅ 🤖 AI 대조 결과 모두 같아요 (' + blocks.length + '건)');
       if (diffs.length) showToast('⚠️ AI와 다른 칸 ' + diffs.length + '곳 — 확인해 주세요');
-    }).withFailureHandler(function(e) { if (statusEl) statusEl.innerText = base + '\nℹ️ AI 대조 안 됨: ' + (e.message || e); })
+    }).withFailureHandler(function(e) { if (statusEl) statusEl.innerText = base + '\n⚠ AI 미검증(규칙 단독) — ' + (e.message || e); })
       .aiManholeExtractBackend({ base64: b64, mime: file.type || 'application/pdf', fileName: file.name, text: (pdfLines || []).join('\n') });
   };
   fr.readAsDataURL(file);
@@ -12767,7 +12784,7 @@ renderPortalExtractTable();
 if (portalExtractItems.length && (res.totalWarn || res.learnedNote)) {
 setPortalExtractStatus_((res.totalWarn ? '⚠️ ' + res.totalWarn : '') + (res.learnedNote ? ' 🧠 ' + res.learnedNote : ''), '#B45309');
 } else if (portalExtractItems.length) {
-setPortalExtractStatus_('✅ ' + portalExtractItems.length + '개 품목을 가져왔어요' + (res.docTotal ? ' · 문서 합계 ' + Number(res.docTotal).toLocaleString() + '원과 일치' : '') + '. 확인 후 [📄 문서 작성]을 누르세요.' + (comp ? '' : ' (거래처는 직접 선택)') + (res.engine === 'AI' ? ' · 🤖 AI가 읽음' : ' · 글자 규칙으로 읽음' + (res.aiNote ? ' (AI 안 됨: ' + res.aiNote + ')' : '')) + (res.vatIncluded ? ' · 부가세 포함 금액' : ''), '#15803D');
+setPortalExtractStatus_('✅ ' + portalExtractItems.length + '개 품목을 가져왔어요' + (res.docTotal ? ' · 문서 합계 ' + Number(res.docTotal).toLocaleString() + '원과 일치' : '') + '. 확인 후 [📄 문서 작성]을 누르세요.' + (comp ? '' : ' (거래처는 직접 선택)') + (res.aiStatus ? ' · ' + res.aiStatus : (res.engine === 'AI' ? ' · 🤖 AI가 읽음' : ' · 글자 규칙으로 읽음' + (res.aiNote ? ' (AI 안 됨: ' + res.aiNote + ')' : ''))) + (res.vatIncluded ? ' · 부가세 포함 금액' : ''), '#15803D');
 } else {
 setPortalExtractStatus_('⚠️ 품목 표를 찾지 못했어요. 아래에 직접 입력하거나 더 선명한 사진으로 다시 시도해 주세요.', '#B45309');
 }
@@ -12793,15 +12810,25 @@ var amt = Math.round((Number(it.qty) || 0) * (Number(it.unitPrice) || 0));
 if (!amt && it.amount) amt = it.amount;
 total += amt;
 var tr = document.createElement('tr');
+// AI·규칙이 다르게 읽은 칸(it.diff)과 ⚠ 확인 칸은 노랗게
+var df = it.diff || {}, Y = 'background:#FEF3C7;', rowAll = df.row ? Y : '';
+var qtyBlank = it.qty === '' || it.qty == null;
 tr.innerHTML =
-'<td style="text-align:center; font-weight:bold;">' + (idx + 1) + '</td>' +
-'<td><input type="text" value="' + escapeHtmlAttr_(it.name) + '" onchange="portalExtractItems[' + idx + '].name=this.value;" /></td>' +
-'<td><input type="text" value="' + escapeHtmlAttr_(it.unit || 'EA') + '" style="text-align:center;" onchange="portalExtractItems[' + idx + '].unit=this.value;" /></td>' +
-'<td><input type="number" value="' + (Number(it.qty) || 0) + '" style="text-align:right;" onchange="portalExtractItems[' + idx + '].qty=parseFloat(this.value)||0;portalExtractItems[' + idx + '].amount=0;renderPortalExtractTable();" /></td>' +
-'<td><input type="text" inputmode="numeric" value="' + (Number(it.unitPrice) || 0).toLocaleString() + '" style="text-align:right;" onchange="portalExtractItems[' + idx + '].unitPrice=parseFloat(this.value.replace(/[^0-9.-]/g,\'\'))||0;portalExtractItems[' + idx + '].amount=0;renderPortalExtractTable();" /></td>' +
+'<td style="text-align:center; font-weight:bold;' + rowAll + '">' + (idx + 1) + '</td>' +
+'<td><input type="text" value="' + escapeHtmlAttr_(it.name) + '" style="' + (df.name || df.row ? Y : '') + '" onchange="portalExtractItems[' + idx + '].name=this.value;" /></td>' +
+'<td><input type="text" value="' + escapeHtmlAttr_(it.unit || 'EA') + '" style="text-align:center;' + (df.unit ? Y : '') + '" onchange="portalExtractItems[' + idx + '].unit=this.value;" /></td>' +
+'<td><input type="number" value="' + (qtyBlank ? '' : (Number(it.qty) || 0)) + '" placeholder="확인" style="text-align:right;' + (df.qty || qtyBlank ? Y : '') + '" onchange="portalExtractItems[' + idx + '].qty=this.value===\'\'?\'\':(parseFloat(this.value)||0);portalExtractItems[' + idx + '].amount=0;renderPortalExtractTable();" /></td>' +
+'<td><input type="text" inputmode="numeric" value="' + (Number(it.unitPrice) || 0).toLocaleString() + '" style="text-align:right;' + (df.unitPrice ? Y : '') + '" onchange="portalExtractItems[' + idx + '].unitPrice=parseFloat(this.value.replace(/[^0-9.-]/g,\'\'))||0;portalExtractItems[' + idx + '].amount=0;renderPortalExtractTable();" /></td>' +
 '<td style="text-align:right; font-weight:bold; padding-right:6px;">' + amt.toLocaleString() + '</td>' +
 '<td style="text-align:center;"><button type="button" onclick="portalExtractItems.splice(' + idx + ',1);renderPortalExtractTable();" style="background:#FEE2E2; color:#B91C1C; border:none; border-radius:4px; padding:4px 6px; font-weight:bold; cursor:pointer;">✕</button></td>';
 tbody.appendChild(tr);
+// ⚠ 안내(불일치 AI/규칙 값, 수량·단가 확인)는 줄 바로 아래에 보여 줌
+var warns = String(it.note || '').split(' · ').filter(function(x) { return /⚠/.test(x); });
+if (warns.length) {
+var tr2 = document.createElement('tr');
+tr2.innerHTML = '<td></td><td colspan="6" style="font-size:11.5px; color:#92400E; background:#FFFBEB; padding:3px 6px; line-height:1.45;">' + warns.map(function(w) { return escapeHtmlAttr_(w); }).join('<br>') + '</td>';
+tbody.appendChild(tr2);
+}
 });
 var badge = document.getElementById('exCountBadge');
 if (badge) badge.innerText = portalExtractItems.length + '품목';
@@ -12870,6 +12897,12 @@ tr.dataset.rawOrderName = it.name || '';
 // 추출값을 기억해 두었다가 저장할 때 고친 부분을 서버가 배움(검증로그·품명매칭)
 tr.dataset.exRaw = it.raw || it.name || ''; tr.dataset.exName = it.name || ''; tr.dataset.exQty = String(qv); tr.dataset.exPrice = String(up); tr.dataset.exUnit = it.unit || 'EA';
 if (/⚠/.test(it.note || '')) { var nIn = tr.querySelector('.item-note'); if (nIn) nIn.style.background = '#FEF3C7'; }
+var dfx = it.diff || {}, Yc = '#FEF3C7';
+if (dfx.name || dfx.row) { var a1 = tr.querySelector('.item-name-input'); if (a1) a1.style.background = Yc; }
+if (dfx.unit) { var a2 = tr.querySelectorAll('input')[1]; if (a2) a2.style.background = Yc; }
+if (dfx.qty) { var a3 = tr.querySelector('.item-qty'); if (a3) a3.style.background = Yc; }
+if (dfx.unitPrice) { var a4 = tr.querySelector('.item-price'); if (a4) a4.style.background = Yc; }
+if (it.xv) { try { if (it.xv.ai) tr.dataset.exAi = JSON.stringify(it.xv.ai); if (it.xv.rule) tr.dataset.exRule = JSON.stringify(it.xv.rule); } catch (eXv) {} }
 tbody.appendChild(tr);
 });
 // 추출한 특이사항·기타·메모 → 문서 '특이사항 및 전달사항'
