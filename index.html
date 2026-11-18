@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261117-1748';
+var APP_BUILD = '20261118-0933';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -12682,7 +12682,7 @@ renderPortalExtractTable();
 if (portalExtractItems.length && res.totalWarn) {
 setPortalExtractStatus_('⚠️ ' + res.totalWarn, '#B45309');
 } else if (portalExtractItems.length) {
-setPortalExtractStatus_('✅ ' + portalExtractItems.length + '개 품목을 가져왔어요' + (res.docTotal ? ' · 문서 합계 ' + Number(res.docTotal).toLocaleString() + '원과 일치' : '') + '. 확인 후 [📄 문서 작성]을 누르세요.' + (comp ? '' : ' (거래처는 직접 선택)'), '#15803D');
+setPortalExtractStatus_('✅ ' + portalExtractItems.length + '개 품목을 가져왔어요' + (res.docTotal ? ' · 문서 합계 ' + Number(res.docTotal).toLocaleString() + '원과 일치' : '') + '. 확인 후 [📄 문서 작성]을 누르세요.' + (comp ? '' : ' (거래처는 직접 선택)') + (res.engine === 'AI' ? ' · 🤖 AI가 읽음' : ' · 글자 규칙으로 읽음' + (res.aiNote ? ' (AI 안 됨: ' + res.aiNote + ')' : '')) + (res.vatIncluded ? ' · 부가세 포함 금액' : ''), '#15803D');
 } else {
 setPortalExtractStatus_('⚠️ 품목 표를 찾지 못했어요. 아래에 직접 입력하거나 더 선명한 사진으로 다시 시도해 주세요.', '#B45309');
 }
