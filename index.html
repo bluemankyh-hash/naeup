@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261118-1012';
+var APP_BUILD = '20261118-1627';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -12833,6 +12833,10 @@ var em = bp.contactEmail || bp.compEmail; if (em) document.getElementById('recvE
 } else if (comp) {
 showToast('ℹ️ [' + comp + ']이(가) 업체관리에 없어서 사업자번호·주소는 비어 있어요. 업체관리에 등록하면 다음부터 자동으로 들어가요.');
 }
+// 품명으로 판단한 제조사(코팅코리아 이형관 / 스페이스프로 맨홀)로 단가표 맞춤
+var mfrK = portalExtractMeta && portalExtractMeta.mfrKey;
+var mfrSel = document.getElementById('docMfrSelect');
+if (mfrK && mfrSel && mfrSel.querySelector('option[value="' + mfrK + '"]')) mfrSel.value = mfrK;
 var tbody = document.getElementById('itemsBody');
 tbody.innerHTML = '';
 // 받은 서류가 '부가세 포함' 금액이면 금액은 그대로 두고 문서를 '부가세 포함' 방식으로 (시·군 계약용: 부가세 줄 없이 합계 = 포함 금액)
