@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261118-1004';
+var APP_BUILD = '20261118-1012';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -2454,6 +2454,7 @@ try { fetchInitialData(false); } catch (e) { ov.style.display = 'none'; }
 <input type="number" id="docRateInput" value="100" min="1" max="200" step="1" oninput="applyCustomDiscountRate()" style="height:42px; font-weight:bold; font-size:16px !important; text-align:center;" />
 <span style="font-weight:bold; color:#475569;">%</span>
 </div>
+<label style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:12.5px; font-weight:700; color:#B45309; white-space:nowrap; cursor:pointer;"><input type="checkbox" id="docVatIncl" onchange="setDocVatIncluded(this.checked)" style="width:18px; height:18px;"> 부가세 포함 (시·군)</label>
 </div>
 </div>
 <!-- 거래처 빠른 선택 및 관리 -->
@@ -2552,8 +2553,8 @@ style="padding: 6px 8px; border: 1px solid #86efac; border-radius: 4px; font-siz
 </thead>
 <tbody id="itemsBody"></tbody>
 <tfoot>
-<tr><th colspan="4">공급가액 합계</th><td colspan="3" class="text-right" id="subTotal" style="font-weight:bold; text-align:right;">0</td></tr>
-<tr><th colspan="4">부가가치세 (10%)</th><td colspan="3" class="text-right" id="vatTotal" style="font-weight:bold; text-align:right;">0</td></tr>
+<tr><th colspan="4" id="subTotalLbl">공급가액 합계</th><td colspan="3" class="text-right" id="subTotal" style="font-weight:bold; text-align:right;">0</td></tr>
+<tr><th colspan="4" id="vatTotalLbl">부가가치세 (10%)</th><td colspan="3" class="text-right" id="vatTotal" style="font-weight:bold; text-align:right;">0</td></tr>
 <tr><th colspan="4">총 합 계 금 액</th><td colspan="3" class="text-right" id="grandTotal" style="font-weight:bold; font-size:13px; color:#1a365d; text-align:right;">₩ 0 원</td></tr>
 </tfoot>
 </table>
@@ -5453,6 +5454,7 @@ document.getElementById('recvAddress').innerText = '';
 document.getElementById('recvTel').innerText = '';
 document.getElementById('recvEmail').innerText = '';
 document.getElementById('docRemarks').innerText = '';
+window.docVatIncluded = false; if (document.getElementById('docVatIncl')) document.getElementById('docVatIncl').checked = false;
 document.getElementById('docRateInput').value = '100';
 if (document.getElementById('clientSearchInput')) document.getElementById('clientSearchInput').value = '';
 if (document.getElementById('docContactSearchInput')) document.getElementById('docContactSearchInput').value = '';
@@ -5518,6 +5520,7 @@ document.getElementById('recvAddress').innerText = r.recvAddress || (bizPartner 
 document.getElementById('recvTel').innerText = r.recvTel || (bizPartner ? `${bizPartner.tel || ''} / ${bizPartner.contactTel || ''}` : '');
 document.getElementById('recvEmail').innerText = r.recvEmail || (bizPartner ? (bizPartner.compEmail || bizPartner.contactEmail) : '');
 document.getElementById('docRemarks').innerText = r.docRemarks || '';
+window.docVatIncluded = docRemarksHasVatMark_(r.docRemarks); if (document.getElementById('docVatIncl')) document.getElementById('docVatIncl').checked = window.docVatIncluded;
 const tbody = document.getElementById('itemsBody');
 tbody.innerHTML = '';
 if (r.items && r.items.length > 0) {
@@ -5994,11 +5997,29 @@ document.querySelectorAll('#itemsBody tr').forEach(tr => {
 const amtText = tr.querySelector('.item-amount').innerText.replace(/[^\d.-]/g, '');
 sub += parseFloat(amtText) || 0;
 });
-const vat = Math.round(sub * 0.1);
+const vatIn = !!window.docVatIncluded;
+const vat = vatIn ? 0 : Math.round(sub * 0.1);
 const grand = sub + vat;
 document.getElementById('subTotal').innerText = sub.toLocaleString();
-document.getElementById('vatTotal').innerText = vat.toLocaleString();
+document.getElementById('vatTotal').innerText = vatIn ? 'V.A.T 포함' : vat.toLocaleString();
+var _sl = document.getElementById('subTotalLbl'); if (_sl) _sl.innerText = vatIn ? '합 계 (부가세 포함)' : '공급가액 합계';
+var _vl = document.getElementById('vatTotalLbl'); if (_vl) _vl.innerText = vatIn ? '부가가치세' : '부가가치세 (10%)';
 document.getElementById('grandTotal').innerText = `₩ ${grand.toLocaleString()} 원`;
+}
+// ===== 부가세 포함 문서 (시·군 발주처: 단가·합계를 부가세 포함 금액으로, 부가세 줄은 'V.A.T 포함') =====
+var DOC_VAT_MARK_ = '※ 위 금액은 부가세(V.A.T) 포함 금액입니다.';
+function docRemarksHasVatMark_(t) { return /부가세\(V\.A\.T\)\s*포함\s*금액/.test(String(t || '')); }
+function setDocVatIncluded(on) {
+window.docVatIncluded = !!on;
+var c = document.getElementById('docVatIncl'); if (c) c.checked = !!on;
+var rm = document.getElementById('docRemarks');
+if (rm) {
+var lines = String(rm.innerText || '').split('\n').filter(function(l) { return !docRemarksHasVatMark_(l); });
+while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+if (on) lines.push(DOC_VAT_MARK_);
+rm.innerText = lines.join('\n');
+}
+calculateTotals();
 }
 function applyCustomDiscountRate() {
 const percent = parseFloat(document.getElementById('docRateInput').value) || 100;
@@ -6879,7 +6900,8 @@ itemsHtml += `
 </tr>
 `;
 });
-const vatSum = Math.round(subTotalSum * 0.1);
+const vatInDoc = !!window.docVatIncluded;
+const vatSum = vatInDoc ? 0 : Math.round(subTotalSum * 0.1);
 const grandSum = subTotalSum + vatSum;
 const dateStr = toKoreanDate(document.getElementById('fieldDate').value);
 const delivStr = toKoreanDate(document.getElementById('fieldDeliveryDate').value);
@@ -6938,8 +6960,8 @@ ${mainContrRow}
 <thead><tr><th>No</th><th>품명 및 규격</th><th>단위</th><th>수량</th><th>단가</th><th>금액</th><th>비고</th></tr></thead>
 <tbody>${itemsHtml}</tbody>
 <tfoot>
-<tr><th colspan="4">공급가액 총합계</th><td colspan="3" style="font-weight:700; text-align:right; font-size:12px;">${subTotalSum.toLocaleString()}</td></tr>
-<tr><th colspan="4">부가가치세 (10%)</th><td colspan="3" style="font-weight:700; text-align:right; font-size:12px;">${vatSum.toLocaleString()}</td></tr>
+<tr><th colspan="4">${vatInDoc ? '합 계 (부가세 포함)' : '공급가액 총합계'}</th><td colspan="3" style="font-weight:700; text-align:right; font-size:12px;">${subTotalSum.toLocaleString()}</td></tr>
+<tr><th colspan="4">${vatInDoc ? '부가가치세' : '부가가치세 (10%)'}</th><td colspan="3" style="font-weight:700; text-align:right; font-size:12px;">${vatInDoc ? 'V.A.T 포함' : vatSum.toLocaleString()}</td></tr>
 <tr><th colspan="4">총 합 계 금 액</th><td colspan="3" style="font-weight:800; text-align:right; font-size:13px; color:#1a365d;">₩ ${grandSum.toLocaleString()} 원</td></tr>
 </tfoot>
 </table>
@@ -9125,8 +9147,8 @@ name: nameVal || '상하수도자재',
 spec: unitVal,
 qty: qtyVal || 1,
 price: priceVal,
-supplyAmount: amtVal,
-taxAmount: Math.round(amtVal * 0.1),
+supplyAmount: window.docVatIncluded ? Math.round(amtVal / 1.1) : amtVal,
+taxAmount: window.docVatIncluded ? amtVal - Math.round(amtVal / 1.1) : Math.round(amtVal * 0.1),
 note: noteVal
 });
 }
@@ -9186,8 +9208,8 @@ name: it.name || '상하수도자재',
 spec: it.unit || '',
 qty: q,
 price: p,
-supplyAmount: amt,
-taxAmount: Math.round(amt * 0.1),
+supplyAmount: docRemarksHasVatMark_(r.docRemarks) ? Math.round(amt / 1.1) : amt,
+taxAmount: docRemarksHasVatMark_(r.docRemarks) ? amt - Math.round(amt / 1.1) : Math.round(amt * 0.1),
 note: it.note || ''
 });
 }
@@ -12723,7 +12745,7 @@ document.getElementById('exPhone').value = res.phone || '';
 document.getElementById('exMemo').value = res.memo || '';
 var comp = res.company || guessCompanyByPhone_(res.phone);
 if (comp) document.getElementById('exCompany').value = comp;
-document.getElementById('exVatNote').innerHTML = res.vatSeparate ? '(부가세 별도)' : '<label style="font-weight:700;color:#B45309;white-space:nowrap"><input type="checkbox" id="exVatIncluded"' + (res.vatIncluded ? ' checked' : '') + '> 부가세 포함 금액 (문서에는 ÷1.1로)</label>';
+document.getElementById('exVatNote').innerHTML = res.vatSeparate ? '(부가세 별도)' : '<label style="font-weight:700;color:#B45309;white-space:nowrap"><input type="checkbox" id="exVatIncluded"' + (res.vatIncluded ? ' checked' : '') + '> 부가세 포함 금액 (문서도 부가세 포함으로 · 시·군)</label>';
 document.getElementById('exLoadedBadge').innerText = (file.name || '사진') + ' · ' + portalExtractItems.length + '품목';
 renderPortalExtractTable();
 if (portalExtractItems.length && res.totalWarn) {
@@ -12813,19 +12835,29 @@ showToast('ℹ️ [' + comp + ']이(가) 업체관리에 없어서 사업자번�
 }
 var tbody = document.getElementById('itemsBody');
 tbody.innerHTML = '';
-// 받은 서류가 '부가세 포함' 금액이면 공급가(÷1.1)로 바꿔 넣음 → 문서에서 부가세 10%가 다시 붙어도 합계가 원래 금액과 같아짐
+// 받은 서류가 '부가세 포함' 금액이면 금액은 그대로 두고 문서를 '부가세 포함' 방식으로 (시·군 계약용: 부가세 줄 없이 합계 = 포함 금액)
 var vatIn = !!(portalExtractMeta && portalExtractMeta.vatIncluded);
 var vatChk = document.getElementById('exVatIncluded'); if (vatChk) vatIn = vatChk.checked;
 portalExtractItems.forEach(function(it, idx) {
-var up = Number(it.unitPrice) || 0; if (vatIn) up = Math.round(up / 1.1);
-var amt = Math.round((Number(it.qty) || 0) * up) || (vatIn ? Math.round((Number(it.amount) || 0) / 1.1) : Number(it.amount) || 0);
+var up = Number(it.unitPrice) || 0;
+var amt = Math.round((Number(it.qty) || 0) * up) || Number(it.amount) || 0;
 var tr = createItemRowElem(idx + 1, it.name, it.unit || 'EA', it.qty || 1, up, amt, it.note || '', up, '');
 tr.dataset.rawOrderName = it.name || '';
 tbody.appendChild(tr);
 });
-calculateTotals();
+// 추출한 특이사항·기타·메모 → 문서 '특이사항 및 전달사항'
+var rmEl = document.getElementById('docRemarks');
+if (rmEl) {
+var notes = [];
+var addN = function(t) { String(t || '').split(/\n+|\s+\/\s+/).forEach(function(l) { l = l.trim(); if (l && notes.indexOf(l) < 0 && !docRemarksHasVatMark_(l)) notes.push(l); }); };
+var mm = portalExtractMeta || {};
+addN(mm.remarks); addN(mm.specialNote); addN(mm.special_note); addN(mm.etc); addN(mm.notes);
+addN(memo);
+rmEl.innerText = notes.join('\n');
+}
+setDocVatIncluded(vatIn);
 setTimeout(updateSheetScale, 80);
-showToast('📄 협의 품목 ' + portalExtractItems.length + '건이 [문서 작성]에 반영되었습니다.' + (vatIn ? ' 부가세 포함 금액이라 공급가(÷1.1)로 넣었어요.' : ''));
+showToast('📄 협의 품목 ' + portalExtractItems.length + '건이 [문서 작성]에 반영되었습니다.' + (vatIn ? ' 부가세 포함 금액 그대로 넣었어요 (부가세 줄: V.A.T 포함).' : ''));
 }
 
 // ==================== [§7-P] 펌프장 맨홀 주문서 (별도 앱 내장) ====================
