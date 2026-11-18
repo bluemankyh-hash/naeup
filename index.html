@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261118-1748';
+var APP_BUILD = '20261119-0417';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -6739,8 +6739,17 @@ price: tr.querySelector('.item-price').value.replace(/[^\d]/g, ''),
 amount: tr.querySelector('.item-amount').innerText.replace(/[^\d]/g, ''),
 note: tr.querySelector('.item-note').value,
 basePrice: tr.dataset.basePrice || 0,
-calcDesc: tr.dataset.calcDesc || ''
+calcDesc: tr.dataset.calcDesc || '',
+exRaw: tr.dataset.exRaw || undefined, exName: tr.dataset.exName, exQty: tr.dataset.exQty, exPrice: tr.dataset.exPrice
 });
+// 한 번 보낸 수정은 다시 배우지 않게 기준값을 지금 값으로 바꿔 둠 (PDF 저장 등으로 여러 번 저장해도 로그 중복 없음)
+if (tr.dataset.exRaw) {
+var _r = (parseFloat(document.getElementById('docRateInput').value) || 100) / 100;
+tr.dataset.exName = tr.querySelector('.item-name-input').value.trim();
+tr.dataset.exQty = String(tr.querySelector('.item-qty').value).trim();
+var _p = Number(tr.querySelector('.item-price').value.replace(/[^\d]/g, '')) || 0;
+if (_p > 0) tr.dataset.exPrice = String(Math.round(_p / _r));
+}
 });
 const rateVal = ((parseFloat(document.getElementById('docRateInput').value) || 100) / 100).toFixed(2);
 return {
@@ -12748,8 +12757,8 @@ if (comp) document.getElementById('exCompany').value = comp;
 document.getElementById('exVatNote').innerHTML = res.vatSeparate ? '(부가세 별도)' : '<label style="font-weight:700;color:#B45309;white-space:nowrap"><input type="checkbox" id="exVatIncluded"' + (res.vatIncluded ? ' checked' : '') + '> 부가세 포함 금액 (문서도 부가세 포함으로 · 시·군)</label>';
 document.getElementById('exLoadedBadge').innerText = (file.name || '사진') + ' · ' + portalExtractItems.length + '품목';
 renderPortalExtractTable();
-if (portalExtractItems.length && res.totalWarn) {
-setPortalExtractStatus_('⚠️ ' + res.totalWarn, '#B45309');
+if (portalExtractItems.length && (res.totalWarn || res.learnedNote)) {
+setPortalExtractStatus_((res.totalWarn ? '⚠️ ' + res.totalWarn : '') + (res.learnedNote ? ' 🧠 ' + res.learnedNote : ''), '#B45309');
 } else if (portalExtractItems.length) {
 setPortalExtractStatus_('✅ ' + portalExtractItems.length + '개 품목을 가져왔어요' + (res.docTotal ? ' · 문서 합계 ' + Number(res.docTotal).toLocaleString() + '원과 일치' : '') + '. 확인 후 [📄 문서 작성]을 누르세요.' + (comp ? '' : ' (거래처는 직접 선택)') + (res.engine === 'AI' ? ' · 🤖 AI가 읽음' : ' · 글자 규칙으로 읽음' + (res.aiNote ? ' (AI 안 됨: ' + res.aiNote + ')' : '')) + (res.vatIncluded ? ' · 부가세 포함 금액' : ''), '#15803D');
 } else {
@@ -12850,6 +12859,9 @@ if (qv === '') amt = 0;
 var tr = createItemRowElem(idx + 1, it.name, it.unit || 'EA', qv, up, amt, it.note || '', up, '');
 if (qv === '') { var qIn = tr.querySelector('.item-qty'); if (qIn) { qIn.value = ''; qIn.style.background = '#FEF3C7'; qIn.placeholder = '확인'; } }
 tr.dataset.rawOrderName = it.name || '';
+// 추출값을 기억해 두었다가 저장할 때 고친 부분을 서버가 배움(검증로그·품명매칭)
+tr.dataset.exRaw = it.raw || it.name || ''; tr.dataset.exName = it.name || ''; tr.dataset.exQty = String(qv); tr.dataset.exPrice = String(up);
+if (/⚠/.test(it.note || '')) { var nIn = tr.querySelector('.item-note'); if (nIn) nIn.style.background = '#FEF3C7'; }
 tbody.appendChild(tr);
 });
 // 추출한 특이사항·기타·메모 → 문서 '특이사항 및 전달사항'
