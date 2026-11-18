@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-0417';
+var APP_BUILD = '20261119-0421';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -2455,6 +2455,7 @@ try { fetchInitialData(false); } catch (e) { ov.style.display = 'none'; }
 <span style="font-weight:bold; color:#475569;">%</span>
 </div>
 <label style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:12.5px; font-weight:700; color:#B45309; white-space:nowrap; cursor:pointer;"><input type="checkbox" id="docVatIncl" onchange="setDocVatIncluded(this.checked)" style="width:18px; height:18px;"> 부가세 포함 (시·군)</label>
+<label title="체크하고 저장하면 이 문서에서 고친 품명·단가를 다음 추출부터 그대로 씁니다. 이 현장만의 특별 단가면 체크하지 마세요." style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:12.5px; font-weight:700; color:#4338CA; white-space:nowrap; cursor:pointer;"><input type="checkbox" id="docLearnFix" style="width:18px; height:18px;"> 🧠 고친 품명·단가 기억(고정)</label>
 </div>
 </div>
 <!-- 거래처 빠른 선택 및 관리 -->
@@ -5455,6 +5456,7 @@ document.getElementById('recvTel').innerText = '';
 document.getElementById('recvEmail').innerText = '';
 document.getElementById('docRemarks').innerText = '';
 window.docVatIncluded = false; if (document.getElementById('docVatIncl')) document.getElementById('docVatIncl').checked = false;
+window.docExFile = ''; if (document.getElementById('docLearnFix')) document.getElementById('docLearnFix').checked = false;
 document.getElementById('docRateInput').value = '100';
 if (document.getElementById('clientSearchInput')) document.getElementById('clientSearchInput').value = '';
 if (document.getElementById('docContactSearchInput')) document.getElementById('docContactSearchInput').value = '';
@@ -6740,13 +6742,14 @@ amount: tr.querySelector('.item-amount').innerText.replace(/[^\d]/g, ''),
 note: tr.querySelector('.item-note').value,
 basePrice: tr.dataset.basePrice || 0,
 calcDesc: tr.dataset.calcDesc || '',
-exRaw: tr.dataset.exRaw || undefined, exName: tr.dataset.exName, exQty: tr.dataset.exQty, exPrice: tr.dataset.exPrice
+exRaw: tr.dataset.exRaw || undefined, exName: tr.dataset.exName, exQty: tr.dataset.exQty, exPrice: tr.dataset.exPrice, exUnit: tr.dataset.exUnit
 });
 // 한 번 보낸 수정은 다시 배우지 않게 기준값을 지금 값으로 바꿔 둠 (PDF 저장 등으로 여러 번 저장해도 로그 중복 없음)
 if (tr.dataset.exRaw) {
 var _r = (parseFloat(document.getElementById('docRateInput').value) || 100) / 100;
 tr.dataset.exName = tr.querySelector('.item-name-input').value.trim();
 tr.dataset.exQty = String(tr.querySelector('.item-qty').value).trim();
+tr.dataset.exUnit = String(tr.querySelectorAll('input')[1].value).trim();
 var _p = Number(tr.querySelector('.item-price').value.replace(/[^\d]/g, '')) || 0;
 if (_p > 0) tr.dataset.exPrice = String(Math.round(_p / _r));
 }
@@ -6775,7 +6778,9 @@ recvTel: document.getElementById('recvTel').innerText.trim(),
 recvEmail: document.getElementById('recvEmail').innerText.trim(),
 totalAmount: document.getElementById('grandTotal').innerText,
 items: items,
-docRemarks: document.getElementById('docRemarks').innerText.trim()
+docRemarks: document.getElementById('docRemarks').innerText.trim(),
+exFile: window.docExFile || '',
+learnFix: !!(document.getElementById('docLearnFix') && document.getElementById('docLearnFix').checked)
 };
 }
 try { lastGeneratedPdfUrl = localStorage.getItem('last_saved_pdf_url') || ''; } catch(e) {}
@@ -12756,6 +12761,8 @@ var comp = res.company || guessCompanyByPhone_(res.phone);
 if (comp) document.getElementById('exCompany').value = comp;
 document.getElementById('exVatNote').innerHTML = res.vatSeparate ? '(부가세 별도)' : '<label style="font-weight:700;color:#B45309;white-space:nowrap"><input type="checkbox" id="exVatIncluded"' + (res.vatIncluded ? ' checked' : '') + '> 부가세 포함 금액 (문서도 부가세 포함으로 · 시·군)</label>';
 document.getElementById('exLoadedBadge').innerText = (file.name || '사진') + ' · ' + portalExtractItems.length + '품목';
+portalExtractMeta.fileName = file.name || '';
+var exTot = document.getElementById('exTotal'); if (exTot) { exTot.style.background = (res.docTotal && res.totalOk === false) ? '#FEF3C7' : ''; exTot.title = (res.docTotal && res.totalOk === false) ? '⚠ 계산 확인: 문서 합계 ' + Number(res.docTotal).toLocaleString() + '원과 다름' : ''; }
 renderPortalExtractTable();
 if (portalExtractItems.length && (res.totalWarn || res.learnedNote)) {
 setPortalExtractStatus_((res.totalWarn ? '⚠️ ' + res.totalWarn : '') + (res.learnedNote ? ' 🧠 ' + res.learnedNote : ''), '#B45309');
@@ -12842,6 +12849,7 @@ var em = bp.contactEmail || bp.compEmail; if (em) document.getElementById('recvE
 } else if (comp) {
 showToast('ℹ️ [' + comp + ']이(가) 업체관리에 없어서 사업자번호·주소는 비어 있어요. 업체관리에 등록하면 다음부터 자동으로 들어가요.');
 }
+window.docExFile = (portalExtractMeta && portalExtractMeta.fileName) || '';
 // 품명으로 판단한 제조사(코팅코리아 이형관 / 스페이스프로 맨홀)로 단가표 맞춤
 var mfrK = portalExtractMeta && portalExtractMeta.mfrKey;
 var mfrSel = document.getElementById('docMfrSelect');
@@ -12860,7 +12868,7 @@ var tr = createItemRowElem(idx + 1, it.name, it.unit || 'EA', qv, up, amt, it.no
 if (qv === '') { var qIn = tr.querySelector('.item-qty'); if (qIn) { qIn.value = ''; qIn.style.background = '#FEF3C7'; qIn.placeholder = '확인'; } }
 tr.dataset.rawOrderName = it.name || '';
 // 추출값을 기억해 두었다가 저장할 때 고친 부분을 서버가 배움(검증로그·품명매칭)
-tr.dataset.exRaw = it.raw || it.name || ''; tr.dataset.exName = it.name || ''; tr.dataset.exQty = String(qv); tr.dataset.exPrice = String(up);
+tr.dataset.exRaw = it.raw || it.name || ''; tr.dataset.exName = it.name || ''; tr.dataset.exQty = String(qv); tr.dataset.exPrice = String(up); tr.dataset.exUnit = it.unit || 'EA';
 if (/⚠/.test(it.note || '')) { var nIn = tr.querySelector('.item-note'); if (nIn) nIn.style.background = '#FEF3C7'; }
 tbody.appendChild(tr);
 });
