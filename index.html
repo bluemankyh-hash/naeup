@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261118-1627';
+var APP_BUILD = '20261118-1748';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -12845,7 +12845,10 @@ var vatChk = document.getElementById('exVatIncluded'); if (vatChk) vatIn = vatCh
 portalExtractItems.forEach(function(it, idx) {
 var up = Number(it.unitPrice) || 0;
 var amt = Math.round((Number(it.qty) || 0) * up) || Number(it.amount) || 0;
-var tr = createItemRowElem(idx + 1, it.name, it.unit || 'EA', it.qty || 1, up, amt, it.note || '', up, '');
+var qv = (it.qty === '' || it.qty == null) && /수량 확인/.test(it.note || '') ? '' : (it.qty || 1);   // 수량이 흐리게 읽힌 줄은 비워 두고 직접 확인
+if (qv === '') amt = 0;
+var tr = createItemRowElem(idx + 1, it.name, it.unit || 'EA', qv, up, amt, it.note || '', up, '');
+if (qv === '') { var qIn = tr.querySelector('.item-qty'); if (qIn) { qIn.value = ''; qIn.style.background = '#FEF3C7'; qIn.placeholder = '확인'; } }
 tr.dataset.rawOrderName = it.name || '';
 tbody.appendChild(tr);
 });
