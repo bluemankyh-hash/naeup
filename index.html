@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261118-0933';
+var APP_BUILD = '20261118-0938';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -12253,6 +12253,8 @@ document.getElementById('poPortalLoadedBadge').innerText = file.name + ' (일반
 renderPortalGeneralPoTable();
 }
 if (statusEl) statusEl.innerText = '✅ [동시 분리 파싱 완료] 맨홀 ' + dualRes.mhItems.length + '건(모드 1) + 일반 발주 자재 ' + dualRes.poItems.length + '건(모드 2) 추출 완료!';
+// 🤖 AI도 같은 주문서를 읽어서 대조 (PDF 해석이 0건이면 AI 결과로 채움)
+try { portalManholeAiCheck_(file, pdfLines, statusEl); } catch (eAiM) {}
 showToast('✅ 맨홀 ' + dualRes.mhItems.length + '건 + 일반자재 ' + dualRes.poItems.length + '건 동시 분리 파싱 완료!');
 } else {
 if (statusEl) statusEl.innerText = '✅ [' + file.name + '] 파일 확인 완료! 아래 표에서 항목을 검토·수정하실 수 있습니다.';
@@ -12267,6 +12269,51 @@ event.target.value = '';
 
 
 
+
+/* 맨홀주문서: AI가 읽은 값과 PDF 해석 값을 대조 → 다르면 어느 칸이 다른지 알려 줌 */
+function portalManholeAiCheck_(file, pdfLines, statusEl) {
+  if (!file || file.size > 15 * 1024 * 1024) return;
+  var fr = new FileReader();
+  fr.onload = function() {
+    var b64 = String(fr.result || '').split(',')[1] || '';
+    var base = statusEl ? statusEl.innerText : '';
+    if (statusEl) statusEl.innerText = base + '\n🤖 AI가 한 번 더 읽고 대조하는 중…';
+    google.script.run.withSuccessHandler(function(r) {
+      if (!r || !r.success || !r.data) { if (statusEl) statusEl.innerText = base + '\nℹ️ AI 대조 안 됨' + (r && r.error ? ': ' + r.error : ''); return; }
+      var d = r.data, blocks = d.blocks || [];
+      var num = function(v) { var n = parseFloat(String(v == null ? '' : v).replace(/[^\d.]/g, '')); return isNaN(n) ? null : n; };
+      if (!(portalManholeItems || []).length && blocks.length) {
+        portalManholeItems = blocks.map(function(b, i) {
+          var ins = (b.ins || []).filter(function(x) { return x && num(x.dia); });
+          return buildPortalManholeRow({ no: b.no || i + 1, mhNo: b.mhNo || '', innerDia: b.innerDia || 900, bgiCnt: ins.length + 1, heightMm: b.heightMm || 1500,
+            outAngle: (b.out && b.out.angle) || '0', outDia: (b.out && b.out.dia) || 200,
+            inBranches: ins.map(function(x) { return { angle: String(num(x.angle) == null ? 180 : num(x.angle)), dia: String(num(x.dia)), dancha: x.dancha ? String(x.dancha) : '' }; }), inverYn: 'Y' });
+        });
+        renderPortalManholeTable(); autoSavePortalManholeToSheet();
+        if (statusEl) statusEl.innerText = '✅ 🤖 AI가 맨홀 ' + portalManholeItems.length + '건을 읽었어요. 각도·높이·단차를 한 번 확인해 주세요.';
+        return;
+      }
+      var diffs = [];
+      (portalManholeItems || []).forEach(function(it, i) {
+        var b = blocks[i]; if (!b) return;
+        var tag = 'NO.' + (it.no || i + 1);
+        if (num(b.heightMm) && Math.abs(num(b.heightMm) - num(it.heightMm)) > 5) diffs.push(tag + ' 높이 ' + it.heightMm + '↔AI ' + b.heightMm);
+        if (b.out && num(b.out.dia) && num(b.out.dia) !== num(it.outDia)) diffs.push(tag + ' OUT관경 ' + it.outDia + '↔AI ' + b.out.dia);
+        var ins = (b.ins || []).filter(function(x) { return x && num(x.dia); }), mine = (it.inBranches || []).filter(function(x) { return x && num(x.dia); });
+        ins.forEach(function(x, k) {
+          var m = mine[k] || {};
+          if (num(x.angle) != null && num(m.angle) !== num(x.angle)) diffs.push(tag + ' IN' + (k + 1) + ' 각도 ' + (m.angle || '-') + '↔AI ' + x.angle);
+          if (num(x.dancha) != null && Math.abs((num(m.dancha) || 0) - num(x.dancha)) > 0.005) diffs.push(tag + ' IN' + (k + 1) + ' 단차 ' + (m.dancha || 0) + '↔AI ' + x.dancha);
+        });
+      });
+      if (blocks.length !== (portalManholeItems || []).length) diffs.unshift('맨홀 개수 ' + portalManholeItems.length + '↔AI ' + blocks.length);
+      if (statusEl) statusEl.innerText = base + (diffs.length ? '\n⚠️ 🤖 AI와 다른 칸이 있어요 — 원본을 보고 확인해 주세요:\n· ' + diffs.slice(0, 8).join('\n· ') : '\n✅ 🤖 AI 대조 결과 모두 같아요 (' + blocks.length + '건)');
+      if (diffs.length) showToast('⚠️ AI와 다른 칸 ' + diffs.length + '곳 — 확인해 주세요');
+    }).withFailureHandler(function(e) { if (statusEl) statusEl.innerText = base + '\nℹ️ AI 대조 안 됨: ' + (e.message || e); })
+      .aiManholeExtractBackend({ base64: b64, mime: file.type || 'application/pdf', fileName: file.name, text: (pdfLines || []).join('\n') });
+  };
+  fr.readAsDataURL(file);
+}
 function applyManholeItemsToPortalDocWriter() {
 syncPortalManholeCommonMeta();
 closeSection('manholeOrderSection');
