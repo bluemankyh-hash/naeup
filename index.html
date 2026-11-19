@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-0947';
+var APP_BUILD = '20261119-1800';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -5527,7 +5527,7 @@ const tbody = document.getElementById('itemsBody');
 tbody.innerHTML = '';
 if (r.items && r.items.length > 0) {
 r.items.forEach((it, idx) => {
-tbody.appendChild(createItemRowElem(idx + 1, it.name, it.unit, it.qty, it.price, it.amount, it.note, it.basePrice, it.calcDesc));
+tbody.appendChild(createItemRowElem(idx + 1, it.name, it.unit, it.qty, it.price, it.amount, it.note, it.basePrice, it.calcDesc, it.autoNote));
 });
 } else {
 addItemRow();
@@ -5555,7 +5555,30 @@ tbody.appendChild(createItemRowElem(rowNum, '', '', '', '0', '0', '', 0, ''));
 calculateTotals();
 setTimeout(updateSheetScale, 60);
 }
-function createItemRowElem(no, name, unit, qty, price, amount, note, basePrice, calcDesc) {
+/* 비고 칸에는 사장님이 직접 쓴 글만. 앱이 붙인 안내(원문·⚠ 확인·단가표 확인 등)는 '나만 보는 메모'로 따로 — 인쇄·PDF에 안 나옴 */
+var AUTO_NOTE_RE_ = /^(?:원문\s*:|원본\s*비고|⚠|ⓘ|단가표\s*확인|수량\s*확인|이경\s*\d|🧠)/;
+function splitAutoNote_(note) {
+var user = [], auto = [];
+String(note || '').split(/\s*·\s*(?=원문|원본|⚠|ⓘ|단가표|수량\s*확인|이경\s*\d|🧠)|\s+·\s+/).forEach(function(seg) {
+seg = String(seg || '').trim(); if (!seg) return;
+(AUTO_NOTE_RE_.test(seg) || /\(단가 0원\)|읽힌 값|불일치/.test(seg) ? auto : user).push(seg);
+});
+return { user: user.join(' · '), auto: auto.join(' · ') };
+}
+function renderAutoNoteHint_(tr) {
+if (!tr) return;
+var td = tr.children[1]; if (!td) return;
+var h = td.querySelector('.auto-note-hint');
+var t = tr.dataset.autoNote || '';
+if (!t) { if (h) h.remove(); return; }
+if (!h) { h = document.createElement('div'); h.className = 'no-print auto-note-hint'; h.style.cssText = 'font-size:10.5px; line-height:1.35; color:#92400E; background:#FFFBEB; border-left:3px solid #F59E0B; padding:1px 4px; margin-top:2px; border-radius:2px; word-break:keep-all;'; td.appendChild(h); }
+h.textContent = '🔒 ' + t;
+h.title = '나만 보는 메모 — 인쇄·PDF에는 나오지 않아요';
+}
+function createItemRowElem(no, name, unit, qty, price, amount, note, basePrice, calcDesc, autoNote) {
+var _sp = splitAutoNote_(note);
+note = _sp.user;
+autoNote = [String(autoNote || '').trim(), _sp.auto].filter(Boolean).join(' · ');
 const tr = document.createElement('tr');
 tr.innerHTML = `
 <td style="text-align:center;">${no}</td>
@@ -5580,6 +5603,13 @@ tr.innerHTML = `
 `;
 tr.dataset.basePrice = basePrice || 0;
 tr.dataset.calcDesc = calcDesc || '';
+tr.dataset.autoNote = autoNote || '';
+renderAutoNoteHint_(tr);
+// 단가·수량을 채우면 '단가 0원'·'수량 확인' 메모는 저절로 지움
+var _clr = function(re) { if (!tr.dataset.autoNote) return; tr.dataset.autoNote = tr.dataset.autoNote.split(' · ').filter(function(x) { return !re.test(x); }).join(' · '); renderAutoNoteHint_(tr); };
+var _pi = tr.querySelector('.item-price'), _qi = tr.querySelector('.item-qty');
+if (_pi) _pi.addEventListener('input', function() { if ((Number(String(_pi.value).replace(/[^\d]/g, '')) || 0) > 0) _clr(/단가 0원/); });
+if (_qi) _qi.addEventListener('input', function() { if (String(_qi.value).trim() !== '') _clr(/수량 확인/); });
 return tr;
 }
 function onItemNoteInput(noteElem) {
@@ -6742,6 +6772,7 @@ amount: tr.querySelector('.item-amount').innerText.replace(/[^\d]/g, ''),
 note: tr.querySelector('.item-note').value,
 basePrice: tr.dataset.basePrice || 0,
 calcDesc: tr.dataset.calcDesc || '',
+autoNote: tr.dataset.autoNote || '',
 exRaw: tr.dataset.exRaw || undefined, exName: tr.dataset.exName, exQty: tr.dataset.exQty, exPrice: tr.dataset.exPrice, exUnit: tr.dataset.exUnit,
 exAi: tr.dataset.exAi || undefined, exRule: tr.dataset.exRule || undefined
 });
@@ -6911,7 +6942,7 @@ const qtyVal = tr.querySelector('.item-qty') ? tr.querySelector('.item-qty').val
 const priceVal = tr.querySelector('.item-price') ? tr.querySelector('.item-price').value : '';
 const amtText = tr.querySelector('.item-amount') ? tr.querySelector('.item-amount').innerText.replace(/[^\d.-]/g, '') : '0';
 const amtVal = parseFloat(amtText) || 0;
-const noteVal = tr.querySelector('.item-note') ? tr.querySelector('.item-note').value : '';
+const noteVal = tr.querySelector('.item-note') ? splitAutoNote_(tr.querySelector('.item-note').value).user : '';   // 앱 안내 문구는 PDF에 절대 안 나가게
 subTotalSum += amtVal;
 itemsHtml += `
 <tr>
@@ -12927,12 +12958,11 @@ var up = Number(it.unitPrice) || 0;
 var amt = Math.round((Number(it.qty) || 0) * up) || Number(it.amount) || 0;
 var qv = (it.qty === '' || it.qty == null) && /수량 확인/.test(it.note || '') ? '' : (it.qty || 1);   // 수량이 흐리게 읽힌 줄은 비워 두고 직접 확인
 if (qv === '') amt = 0;
-var tr = createItemRowElem(idx + 1, it.name, it.unit || 'EA', qv, up, amt, it.note || '', up, '');
+var tr = createItemRowElem(idx + 1, it.name, it.unit || 'EA', qv, up, amt, '', up, '', it.note || '');   // 추출 안내·원본 비고는 모두 '나만 보는 메모'로
 if (qv === '') { var qIn = tr.querySelector('.item-qty'); if (qIn) { qIn.value = ''; qIn.style.background = '#FEF3C7'; qIn.placeholder = '확인'; } }
 tr.dataset.rawOrderName = it.name || '';
 // 추출값을 기억해 두었다가 저장할 때 고친 부분을 서버가 배움(검증로그·품명매칭)
 tr.dataset.exRaw = it.raw || it.name || ''; tr.dataset.exName = it.name || ''; tr.dataset.exQty = String(qv); tr.dataset.exPrice = String(up); tr.dataset.exUnit = it.unit || 'EA';
-if (/⚠/.test(it.note || '')) { var nIn = tr.querySelector('.item-note'); if (nIn) nIn.style.background = '#FEF3C7'; }
 var dfx = it.diff || {}, Yc = '#FEF3C7';
 if (dfx.name || dfx.row) { var a1 = tr.querySelector('.item-name-input'); if (a1) a1.style.background = Yc; }
 if (dfx.unit) { var a2 = tr.querySelectorAll('input')[1]; if (a2) a2.style.background = Yc; }
