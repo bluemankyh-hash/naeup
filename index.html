@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-1800';
+var APP_BUILD = '20261119-1811';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -6933,6 +6933,13 @@ return val;
 }
 const itemTrs = Array.from(document.querySelectorAll('#itemsBody tr'));
 let itemsHtml = "";
+// 품명이 길면 두 줄로 넘기지 않고 글자를 줄여서 한 줄로 (품명 칸 ≈ A4 폭의 35%)
+// PDF는 구글 서버 글꼴로 그려서 화면 글꼴로 재면 안 맞음 → 글자 폭으로 계산(한글 1, 영문·숫자·기호 0.55). 12px에서 한 줄에 약 17칸
+const fitNameFont_ = function(txt) {
+let w = 0; String(txt || '').split('').forEach(function(ch) { w += /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\u4E00-\u9FFF]/.test(ch) ? 1 : 0.55; });
+const cap = 16.8;
+return w <= cap ? 12 : Math.max(7.5, Math.floor(12 * cap / w * 10) / 10);
+};
 let subTotalSum = 0;
 itemTrs.forEach((tr, idx) => {
 const nameVal = tr.querySelector('.item-name-input') ? tr.querySelector('.item-name-input').value : '';
@@ -6947,7 +6954,7 @@ subTotalSum += amtVal;
 itemsHtml += `
 <tr>
 <td style="text-align:center; font-size:12px; font-weight:400;">${idx + 1}</td>
-<td style="text-align:left; padding-left:5px; font-size:12px; font-weight:400;">${nameVal}</td>
+<td style="text-align:left; padding-left:5px; font-size:${fitNameFont_(nameVal)}px !important; font-weight:400; white-space:nowrap; overflow:hidden; letter-spacing:-0.2px;">${nameVal}</td>
 <td style="text-align:center; font-size:12px; font-weight:400;">${unitVal}</td>
 <td style="text-align:right; font-size:12px; font-weight:400;">${qtyVal}</td>
 <td style="text-align:right; font-size:12px; font-weight:400;">${priceVal}</td>
