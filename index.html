@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-1816';
+var APP_BUILD = '20261119-1825';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -611,9 +611,10 @@ white-space: nowrap !important;
 overflow: hidden;
 }
 #recvAddress, #suppAddress, .single-line-addr {
-font-size: 10.5px !important;
-padding-left: 6px !important;
-padding-right: 4px !important;
+/* 주소도 다른 칸과 같은 크기·같은 들여쓰기. 길 때만 fitAddrCell_()이 글자를 줄임 */
+font-size: var(--addr-fs, 12px) !important;
+padding-left: 2px !important;
+padding-right: 2px !important;
 white-space: nowrap !important;
 overflow: hidden !important;
 text-overflow: clip !important;
@@ -5575,6 +5576,26 @@ if (!h) { h = document.createElement('div'); h.className = 'no-print auto-note-h
 h.textContent = '🔒 ' + t;
 h.title = '나만 보는 메모 — 인쇄·PDF에는 나오지 않아요';
 }
+/* 주소 칸: 앞뒤 공백 정리 + 칸보다 길면 넘치지 않을 때까지 글자만 살짝 줄임(최소 9px). 짧으면 다른 칸과 같은 12px */
+function fitAddrCell_(el) {
+if (!el) return;
+if (document.activeElement !== el) { var t = el.innerText, tt = t.replace(/^[\s\u00A0]+|[\s\u00A0]+$/g, '').replace(/[\s\u00A0]{2,}/g, ' '); if (t !== tt) el.innerText = tt; }
+var fs = 12; el.style.setProperty('--addr-fs', fs + 'px');
+var guard = 0;
+while (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1 && fs > 9 && guard++ < 12) { fs -= 0.5; el.style.setProperty('--addr-fs', fs + 'px'); }
+}
+(function() {
+var hook = function() {
+['recvAddress', 'suppAddress'].forEach(function(id) {
+var el = document.getElementById(id); if (!el || el._addrFit) return; el._addrFit = true;
+var run = function() { clearTimeout(el._addrT); el._addrT = setTimeout(function() { fitAddrCell_(el); }, 60); };
+try { new MutationObserver(run).observe(el, { childList: true, characterData: true, subtree: true }); } catch (e) {}
+el.addEventListener('blur', run); run();
+});
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook); else hook();
+setTimeout(hook, 1500);
+})();
 function createItemRowElem(no, name, unit, qty, price, amount, note, basePrice, calcDesc, autoNote) {
 var _sp = splitAutoNote_(note);
 note = _sp.user;
@@ -6935,6 +6956,12 @@ const itemTrs = Array.from(document.querySelectorAll('#itemsBody tr'));
 let itemsHtml = "";
 // 품명이 길면 두 줄로 넘기지 않고 글자를 줄여서 한 줄로 (품명 칸 ≈ A4 폭의 35%)
 // PDF는 구글 서버 글꼴로 그려서 화면 글꼴로 재면 안 맞음 → 글자 폭으로 계산(한글 1, 영문·숫자·기호 0.55). 12px에서 한 줄에 약 17칸
+// 수신처 주소 칸(PDF): 12px에서 한 줄 약 18칸 — 길 때만 줄임
+const fitAddrPdfFont_ = function(txt) {
+let w = 0; String(txt || '').split('').forEach(function(ch) { w += /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\u4E00-\u9FFF]/.test(ch) ? 1 : 0.55; });
+const cap = 18;
+return w <= cap ? 12 : Math.max(8.5, Math.floor(12 * cap / w * 10) / 10);
+};
 const fitNameFont_ = function(txt) {
 let w = 0; String(txt || '').split('').forEach(function(ch) { w += /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\u4E00-\u9FFF]/.test(ch) ? 1 : 0.55; });
 const cap = 16.8;
@@ -6991,7 +7018,7 @@ ${mainContrRow}
 <tr style="height:22px;"><th style="height:22px; padding:2px 2px;">상 호</th><td style="height:22px; padding:2px 4px; white-space:nowrap; overflow:hidden;">${document.getElementById('recvCompany').innerText}</td></tr>
 <tr style="height:22px;"><th style="height:22px; padding:2px 2px;">등록번호</th><td style="height:22px; padding:2px 4px; white-space:nowrap; overflow:hidden;">${document.getElementById('recvBizNo').innerText}</td></tr>
 <tr style="height:22px;"><th style="height:22px; padding:2px 2px;">대표/담당</th><td style="height:22px; padding:2px 4px; white-space:nowrap; overflow:hidden;">${document.getElementById('recvContact').innerText}</td></tr>
-<tr style="height:22px;"><th style="height:22px; padding:2px 2px;">주 소</th><td class="single-line-addr" style="height:22px; padding:2px 4px; font-size:11px !important; white-space:nowrap !important; overflow:hidden !important; letter-spacing:-0.25px;">${document.getElementById('recvAddress').innerText}</td></tr>
+<tr style="height:22px;"><th style="height:22px; padding:2px 2px;">주 소</th><td class="single-line-addr" style="height:22px; padding:2px 4px; font-size:${fitAddrPdfFont_(document.getElementById('recvAddress').innerText.trim())}px !important; white-space:nowrap !important; overflow:hidden !important; letter-spacing:-0.25px;">${document.getElementById('recvAddress').innerText.trim()}</td></tr>
 <tr style="height:22px;"><th style="height:22px; padding:2px 2px;">전화/팩스</th><td style="height:22px; padding:2px 4px; white-space:nowrap; overflow:hidden;">${document.getElementById('recvTel').innerText}</td></tr>
 <tr style="height:22px;"><th style="height:22px; padding:2px 2px;">이 메 일</th><td style="height:22px; padding:2px 4px; white-space:nowrap; overflow:hidden;">${document.getElementById('recvEmail').innerText}</td></tr>
 </table>
