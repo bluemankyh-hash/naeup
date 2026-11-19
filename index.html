@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-1825';
+var APP_BUILD = '20261119-1839';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -9921,7 +9921,11 @@ var fileName = '홈택스일괄발행_' + suppShort + '_' + recvShort + '_' + da
 // 휴대폰은 다운로드가 시작되면 페이지가 멈춰서 드라이브 저장이 안 될 수 있어 → 저장을 먼저 보내고, 다운로드는 버튼으로
 var isMobileDl = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
 if (isMobileDl) { setTimeout(function() { showExcelDownloadBar_(wb, fileName, bookType); }, 300); }
-else XLSX.writeFile(wb, fileName, { bookType: bookType });
+else {
+XLSX.writeFile(wb, fileName, { bookType: bookType });
+// PC에서 받은 엑셀을 기억 → 이어서 [세금계산서 발행] 버튼을 눌러도 같은 엑셀을 또 내려받지 않음
+try { window._lastTaxXls = { fps: targetList.map(makeTaxInvoiceFingerprint), name: fileName, t: Date.now() }; } catch (eM) {}
+}
 
 // 드라이브 및 세금계산서대장 동시 저장
 try {
@@ -10026,16 +10030,20 @@ fileName = '홈택스일괄발행_' + (check.invoice.suppName || '').replace(/[\
 }
 saveTaxInvoiceToServerAndLocal(check.invoice, base64Excel, fileName, mime, false);
 addTaxPrintTodo_(check.invoice);
+// 방금 [이 건만 바로 엑셀 만들기]로 같은 계산서 엑셀을 받았으면 또 받지 않음 (다운로드 폴더에 (1) 파일이 생기던 문제)
+var lx = window._lastTaxXls, fpNow = makeTaxInvoiceFingerprint(check.invoice);
+var alreadyGot = !!(lx && lx.fps && lx.fps.indexOf(fpNow) >= 0 && Date.now() - lx.t < 3 * 3600 * 1000);
+if (alreadyGot) fileName = lx.name;
 // 발행: 엑셀을 이 기기에도 받고 → 홈택스 열기(ID 복사) → 순서 안내
-if (base64Excel && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '')) { try { var a = document.createElement('a'); a.href = base64Excel; a.download = fileName; document.body.appendChild(a); a.click(); a.remove(); } catch (eDl) {} }
+if (base64Excel && !alreadyGot && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '')) { try { var a = document.createElement('a'); a.href = base64Excel; a.download = fileName; document.body.appendChild(a); a.click(); a.remove(); } catch (eDl) {} }
 launchHometaxWithAutoSupplier('pc');
 var prof0 = (defaultCompanyProfiles[check.invoice.suppKey] || {});
 setTimeout(function() {
 showCustomAlert(
-'대장·드라이브에 저장하고, 엑셀을 받고, 홈택스를 새 창으로 열었어요.\n\n' +
+(alreadyGot ? '대장·드라이브에 저장하고, 홈택스를 새 창으로 열었어요.\n(엑셀은 방금 받은 파일을 그대로 쓰면 돼요 — 다시 받지 않았어요)\n\n' : '대장·드라이브에 저장하고, 엑셀을 받고(다운로드 폴더), 홈택스를 새 창으로 열었어요.\n\n') +
 '① 홈택스 로그인 (' + (prof0.name || check.invoice.suppName || '') + ' · ID ' + (prof0.hometaxId || '') + ' 복사됨)\n' +
 '② 계산서·영수증·카드 → 전자(세금)계산서 발급 → 「일괄 발급」\n' +
-'③ [찾아보기]에서 ' + fileName + ' 선택\n' +
+'③ [찾아보기] → 다운로드 폴더의 ' + fileName + ' 선택\n' +
 '④ [검증] → [발급하기] → 인증서 서명\n\n' +
 '발급이 끝나면 대장에서 상태를 「홈택스발행완료」로 바꿔 주세요.',
 '홈택스 일괄발급 순서');
