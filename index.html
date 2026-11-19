@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-1839';
+var APP_BUILD = '20261119-1843';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -10760,7 +10760,7 @@ showToast('🟢 PDF 사업자 [' + suppProf.name + '] 자동 추출 및 로그�
 <div><label>담당자</label><input type="text" id="exContact" /></div>
 <div><label>연락처</label><input type="text" id="exPhone" />
 <button type="button" onclick="openBizDocRequestSms(document.getElementById('exPhone').value, document.getElementById('exContact').value, '', document.getElementById('exCompany').value, document.getElementById('exSite').value)" style="margin-top:4px; width:100%; height:34px; border-radius:8px; border:1px solid #7C3AED; background:#F5F3FF; color:#5B21B6; font-weight:900; font-size:12.5px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📱 서류 요청 문자</button></div>
-<div class="ex-wide"><label>메모</label><input type="text" id="exMemo" /></div>
+<div class="ex-wide"><label>기타 · 특이사항 <span style="font-weight:600; color:#64748B;">(문서의 '특이사항 및 전달사항'으로 들어가요 · 한 줄에 하나씩)</span></label><textarea id="exMemo" rows="3" oninput="this.style.height='auto'; this.style.height=Math.min(240, this.scrollHeight + 2) + 'px';" style="width:100%; box-sizing:border-box; resize:vertical; font:inherit; line-height:1.5; padding:8px 10px; border:1px solid #CBD5E1; border-radius:8px; min-height:64px;"></textarea></div>
 </div>
 <div style="overflow-x:auto; border:1px solid #DDD6FE; border-radius:8px;">
 <table class="tax-item-table ex-table" style="font-size:12.5px;">
@@ -12882,7 +12882,7 @@ if (rawWrap) { rawWrap.style.display = res.rawText ? 'block' : 'none'; rawWrap.o
 document.getElementById('exSite').value = res.site || '';
 document.getElementById('exContact').value = [res.contactName, res.contactRole].filter(Boolean).join(' ');
 document.getElementById('exPhone').value = res.phone || '';
-document.getElementById('exMemo').value = res.memo || '';
+(function() { var mEl = document.getElementById('exMemo'); mEl.value = String(res.memo || '').split(/\s+\/\s+|\n+/).map(function(x) { return x.replace(/^[*·•\-]\s*/, '').trim(); }).filter(Boolean).join('\n'); mEl.style.height = 'auto'; mEl.style.height = Math.min(240, Math.max(64, mEl.scrollHeight + 2)) + 'px'; })();
 var comp = res.company || guessCompanyByPhone_(res.phone);
 if (comp) document.getElementById('exCompany').value = comp;
 document.getElementById('exVatNote').innerHTML = res.vatSeparate ? '(부가세 별도)' : '<label style="font-weight:700;color:#B45309;white-space:nowrap"><input type="checkbox" id="exVatIncluded"' + (res.vatIncluded ? ' checked' : '') + '> 부가세 포함 금액 (문서도 부가세 포함으로 · 시·군)</label>';
@@ -13003,6 +13003,7 @@ if (qv === '') amt = 0;
 var tr = createItemRowElem(idx + 1, it.name, it.unit || 'EA', qv, up, amt, '', up, '', it.note || '');   // 추출 안내·원본 비고는 모두 '나만 보는 메모'로
 if (qv === '') { var qIn = tr.querySelector('.item-qty'); if (qIn) { qIn.value = ''; qIn.style.background = '#FEF3C7'; qIn.placeholder = '확인'; } }
 tr.dataset.rawOrderName = it.name || '';
+if (up > 0) tr.dataset.hasParsedPrice = 'true';   // 서류에 적힌 단가(협의 금액)를 단가표 자동계산이 덮어쓰지 않게
 // 추출값을 기억해 두었다가 저장할 때 고친 부분을 서버가 배움(검증로그·품명매칭)
 tr.dataset.exRaw = it.raw || it.name || ''; tr.dataset.exName = it.name || ''; tr.dataset.exQty = String(qv); tr.dataset.exPrice = String(up); tr.dataset.exUnit = it.unit || 'EA';
 var dfx = it.diff || {}, Yc = '#FEF3C7';
