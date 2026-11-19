@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-0437';
+var APP_BUILD = '20261119-0947';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -6840,7 +6840,16 @@ clonedInputs[i].value = inp.value;
 // [지적 사항 해결] 인쇄 화면에서 품목추가, OCR 라벨 등 문서 외 모든 편집/컨트롤 요소 완전 제거
 const unwantedElements = printContainer.querySelectorAll('.no-print, .cell-mirror, #docItemControlBar, button, label, input[type="file"], .btn-row-action, .btn-todo-del, .inline-item-dropdown, .sheet-zoom-bar');
 unwantedElements.forEach(el => el.remove());
-// 브라우저 인쇄 실행 (순수 서류 양식만 깔끔하게 A4 1장 출력)
+// 2장 이상이 될 만큼 길면 인쇄할 때 각 쪽 아래 가운데에 '쪽 / 전체쪽' (A4 세로 비율 1.414보다 길면 여러 장)
+var pgStyle = document.getElementById('printPageNoStyle'); if (pgStyle) pgStyle.remove();
+try {
+if (sheet.offsetWidth && sheet.offsetHeight / sheet.offsetWidth > 1.38) {
+pgStyle = document.createElement('style'); pgStyle.id = 'printPageNoStyle';
+pgStyle.textContent = '@page { @bottom-center { content: counter(page) " / " counter(pages); font-size: 9pt; color: #444; } }';
+document.head.appendChild(pgStyle);
+}
+} catch (ePg) {}
+// 브라우저 인쇄 실행
 window.print();
 // 인쇄 완료 후 전용 컨테이너 초기화
 printContainer.innerHTML = '';
@@ -7012,7 +7021,8 @@ mainContractor: (document.getElementById('fieldMainContractor') ? document.getEl
 docTitle: document.getElementById('docMainTitle').innerText.replace(/\s+/g, ''),
 htmlString: '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' + pdfFixedCss + '</' + 'style></' + 'head><body>' + finalPrintHtml + '</' + 'body></' + 'html>'
 };
-google.script.run
+// 쪽 번호: 서버가 만든 PDF를 먼저 받아서 2장 이상이면 각 쪽 아래 가운데에 '1 / 2'를 찍은 뒤 저장
+var savePdfFinal_ = function(payload) { google.script.run
 .withSuccessHandler(function(res) {
 if (overlay) overlay.style.display = 'none';
 if (res && res.success && res.pdfUrl) {
@@ -7029,7 +7039,33 @@ showCustomAlert(res.message || "PDF 생성을 완료하지 못했습니다.", "�
 if (overlay) overlay.style.display = 'none';
 showCustomAlert("서버 통신 오류: " + err.message, "오류 안내");
 })
-.handleAction({ action: "generateAndSavePdf", pdfPayload: p });
+.handleAction({ action: "generateAndSavePdf", pdfPayload: payload }); };
+google.script.run
+.withSuccessHandler(function(r0) {
+if (r0 && r0.success && r0.pdfUrl) { savePdfFinal_ = null; lastGeneratedPdfUrl = r0.pdfUrl; if (overlay) overlay.style.display = 'none'; showToast('☁️ PDF가 저장되었습니다.'); openGeneratedPdf(); return; }   // 예전 서버(쪽 번호 기능 전)
+if (!r0 || !r0.success || !r0.pdfBase64) { if (overlay) overlay.style.display = 'none'; showCustomAlert((r0 && (r0.message || r0.error)) || 'PDF 생성을 완료하지 못했습니다.', '구글 PDF 저장 안내'); return; }
+var sendBack = function(b64) { var p2 = Object.assign({}, p); delete p2.htmlString; delete p2.returnBytes; p2.pdfBase64 = b64; savePdfFinal_(p2); };
+addPdfPageNumbers_(r0.pdfBase64).then(sendBack).catch(function() { sendBack(r0.pdfBase64); });   // 쪽 번호를 못 찍어도 저장은 그대로
+})
+.withFailureHandler(function(err) { if (overlay) overlay.style.display = 'none'; showCustomAlert("서버 통신 오류: " + err.message, "오류 안내"); })
+.handleAction({ action: "generateAndSavePdf", pdfPayload: Object.assign({}, p, { returnBytes: true }) });
+}
+/** PDF(base64)가 2장 이상이면 각 쪽 맨 아래 가운데에 '쪽 / 전체쪽' 표시 → base64로 돌려줌 (1장이면 그대로) */
+function addPdfPageNumbers_(b64) {
+return feeLoadPdfLib_().then(function() {
+var bytes = Uint8Array.from(atob(b64), function(c) { return c.charCodeAt(0); });
+return window.PDFLib.PDFDocument.load(bytes);
+}).then(function(doc) {
+var pages = doc.getPages(), n = pages.length;
+if (n < 2) return b64;
+return doc.embedFont(window.PDFLib.StandardFonts.Helvetica).then(function(font) {
+pages.forEach(function(pg, i) {
+var t = (i + 1) + ' / ' + n, size = 9, w = font.widthOfTextAtSize(t, size), sz = pg.getSize();
+pg.drawText(t, { x: (sz.width - w) / 2, y: 12, size: size, font: font, color: window.PDFLib.rgb(0.25, 0.25, 0.25) });
+});
+return doc.saveAsBase64();
+});
+});
 }
 // ==========================================
 // [공통] 명함 사진 축소 (긴 변 1600px JPEG) — 휴대폰 원본 사진은 너무 커서 판독 실패/지연의 원인
