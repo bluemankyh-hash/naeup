@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-1811';
+var APP_BUILD = '20261119-1816';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -7067,7 +7067,7 @@ if (res && res.success && res.pdfUrl) {
 lastGeneratedPdfUrl = res.pdfUrl;
 localStorage.setItem('last_saved_pdf_url', res.pdfUrl);
 const targetFolderLabel = res.folderName || ('영업문서_' + (res.docCategory || 'PDF'));
-showToast("☁️ 구글 드라이브 [" + targetFolderLabel + "] 폴더에 PDF가 저장되었습니다.");
+showToast("☁️ 구글 드라이브 [" + targetFolderLabel + "] 폴더에 PDF가 " + (res.overwritten ? "최신 내용으로 덮어써졌습니다 (같은 파일·같은 링크)." : "저장되었습니다."));
 openGeneratedPdf();
 } else {
 showCustomAlert(res.message || "PDF 생성을 완료하지 못했습니다.", "구글 PDF 저장 안내");
