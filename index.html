@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261122-0234';
+var APP_BUILD = '20261122-0301';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -16260,7 +16260,7 @@ function v3ChooseDocType(cb){
       '<div id="vaRow"><button type="button" id="vaMic" aria-label="말하기">🎤</button><div id="vaTxt"><div id="vaHeard"></div><div id="vaSay"></div></div></div>' +
       '<div id="vaAsk"><button type="button" id="vaYes">✅ 저장</button><button type="button" id="vaNo">취소</button></div>' +
       '<div id="vaType"><input id="vaInput" placeholder="키보드의 🎤를 눌러 말하세요" enterkeyhint="send"><button type="button" id="vaSend">보내기</button></div>' +
-      '<div id="vaHelp">예) "할 일 추가 강림건설 견적 보내기" · "내일 오후 3시 김해 현장 미팅 일정 잡아줘" · "외근 메모 ○○ 소장 만남" · "오늘 업무" · "미입금 알려줘" · "강림건설 전화번호" · "견적서 열어줘" · "그만"</div>';
+      '<div id="vaHelp">편하게 말하세요 🤖 예) "강림건설 소장한테 견적 보내야 하는 거 잊지 않게 해줘" · "월요일 병원 일정 수요일 10시로 미뤄" · "만덕건설 1155만 원 들어왔어" · "남경토건 합천 하수관로 견적서 만들어줘, 1호맨홀 900 300 두 개" · "방글라데시 검수 끝났어" · "오늘 업무" · "그만"</div>';
     document.body.appendChild(box);
     $('vaX').onclick = vaClose;
     $('vaMic').onclick = function(){ if (V.listening) stopListen(); else startListen(); };
@@ -16369,9 +16369,11 @@ function v3ChooseDocType(cb){
       });
     }, 350);
   }
-  function planSched(text){
-    var w = parseWhen(text), ds = w.date || ymd(new Date()), title = (w.time ? w.time + ' ' : '') + (w.rest || text);
-    var cat = /현장/.test(text) ? '현장' : /출장/.test(text) ? '출장' : /(병원|개인|가족|골프)/.test(text) ? '개인' : /(미팅|회의|만남|방문|약속)/.test(text) ? '미팅' : '기타';
+  function planSched(text, S){
+    var w = S ? { date: S.date || '', time: S.time || '', rest: S.title || '' } : parseWhen(text);
+    text = text || (S && S.title) || '';
+    var ds = w.date || ymd(new Date()), title = (w.time ? w.time + ' ' : '') + (w.rest || text);
+    var cat = (S && /^(미팅|현장|출장|개인|기타)$/.test(S.category || '')) ? S.category : /현장/.test(text) ? '현장' : /출장/.test(text) ? '출장' : /(병원|개인|가족|골프)/.test(text) ? '개인' : /(미팅|회의|만남|방문|약속)/.test(text) ? '미팅' : '기타';
     window.v3SelDate = ds; go('schedule');
     setTimeout(function(){
       try { if (typeof v3RenderDay === 'function') v3RenderDay(); } catch (e) {}
@@ -16380,6 +16382,8 @@ function v3ChooseDocType(cb){
         window.v3SelDate = ds;
         var c = $('v3sfCat'); if (c) { c.value = cat; mark(c); }
         setVal($('v3sfTitle'), title);
+        if (S && S.location && $('v3sfLoc')) setVal($('v3sfLoc'), S.location);
+        if (S && S.memo && $('v3sfMemo')) setVal($('v3sfMemo'), S.memo);
         ask(koDate(ds) + (w.time ? ' ' + koTime(w.time) : '') + ', ' + (w.rest || text) + ' (' + cat + ') 일정을 적었어요.', function(){
           if (typeof v3SchedSave === 'function' && $('v3sfTitle') && $('v3sfTitle').value.trim()) { window.v3SelDate = ds; v3SchedSave(); return '일정을 저장했어요.'; }
           return '저장하지 못했어요. 화면에서 등록 버튼을 눌러 주세요.';
@@ -16387,10 +16391,11 @@ function v3ChooseDocType(cb){
       }, 150);
     }, 400);
   }
-  function planMemo(text){
+  function planMemo(text, region){
     go('fieldlog');
     setTimeout(function(){
       setVal($('genLogMemo'), text);
+      if (region && $('genNewRegion')) setVal($('genNewRegion'), region);
       ask('외근 일지에 "' + text + '" 를 적었어요.', function(){
         if (typeof saveGenLog === 'function' && $('genLogMemo') && $('genLogMemo').value.trim()) { saveGenLog(); return '외근 일지를 저장했어요.'; }
         return '저장하지 못했어요. 화면에서 저장 버튼을 눌러 주세요.';
@@ -16424,7 +16429,12 @@ function v3ChooseDocType(cb){
       if (p.kind === 'schedText') return NO.test(t) ? say('취소했어요.', listenAgain) : planSched(t);
       if (p.kind === 'memoText') return NO.test(t) ? say('취소했어요.', listenAgain) : planMemo(t);
       if (p.kind === 'what') { if (YES.test(t)) return planTodo(p.text); if (NO.test(t)) return say('알겠어요.', listenAgain); }
+      if (p.kind === 'confirmBox') { var okB = $(p.ok), noB = $(p.no); if (YES.test(t) || /완료|삭제/.test(t) && !NO.test(t)) { if (okB) okB.click(); return say(p.done || '처리했어요.', listenAgain); } if (NO.test(t)) { if (noB) noB.click(); return say('그대로 둘게요.', listenAgain); } }
     }
+    if (!V.noAI && navigator.onLine !== false && window.google && google.script && google.script.run) return aiPlan(t);
+    return rulesHandle(t);
+  }
+  function rulesHandle(t){
     var m;
     if (/(오늘).*(업무|일정|브리핑|할\s*일|뭐|알려)|^브리핑|^오늘$/.test(t) && !/추가|등록|잡아/.test(t)) { go('hub'); return say(briefing(ymd(new Date()), '오늘'), listenAgain); }
     if (/(내일|모레).*(일정|뭐|알려|있)/.test(t) && !/추가|등록|잡아/.test(t)) { var dd = new Date(); dd.setDate(dd.getDate() + (/모레/.test(t) ? 2 : 1)); window.v3SelDate = ymd(dd); go('schedule'); return say(briefing(ymd(dd), /모레/.test(t) ? '모레' : '내일'), listenAgain); }
@@ -16453,6 +16463,126 @@ function v3ChooseDocType(cb){
     if ((w.date || w.time) && w.rest) return planSched(t);
     V.pending = { kind: 'what', text: t };
     say('"' + t + '" 를 할 일로 적을까요?', listenAgain);
+  }
+
+  /* ---------- AI 두뇌 (Gemini): 자유로운 말 → 앱 기능 ---------- */
+  V.hist = [];
+  function nk(x){ return String(x || '').replace(/\s+/g, '').replace(/\(주\)|주식회사|㈜/g, '').toLowerCase(); }
+  function buildCtx(){
+    var now = new Date(), end = new Date(now); end.setDate(end.getDate() + 14);
+    var sch = (window.allSchedules || []).filter(function(x){ var d = String(x.date || ''); return d >= ymd(new Date(now.getTime() - 86400000 * 3)) && d <= ymd(end); }).slice(0, 60).map(function(x){ return { date: x.date, title: x.title || x.content, cat: x.category, loc: x.location || '' }; });
+    var docs = (window.allDocRecords || []).slice().sort(function(a, b){ return String(b.date || '').localeCompare(String(a.date || '')); }).slice(0, 25).map(function(r){ return { type: r.docType, date: r.date, project: r.project, partner: r.recvCompany, step: r.flowStatus }; });
+    return {
+      today: ymd(now), weekday: '일월화수목금토'[now.getDay()] + '요일', screen: (function(){ try { return v3CurKey(); } catch (e) { return ''; } })(),
+      schedules: sch, todos: activeTodos().slice(0, 40).map(function(x){ return x.task; }),
+      unpaid: unpaid().slice(0, 30).map(function(x){ return { company: x.company, amount: x.amount, date: x.date, memo: x.memo || '' }; }),
+      partners: (window.allBizPartners || []).slice(0, 100).map(function(b){ return b.company; }).filter(Boolean),
+      contacts: (window.allContacts || []).slice(0, 100).map(function(c){ return [c.org || c.company || '', c.name || '', c.role || ''].filter(Boolean).join(' '); }),
+      recentDocs: docs, projects: (window.allProjects || []).slice(0, 60).map(function(p){ return p.title || p.name || p[2] || ''; }).filter(Boolean)
+    };
+  }
+  function aiPlan(t){
+    $('vaSay').textContent = '🤖 생각 중…';
+    var done = false, timer = setTimeout(function(){ if (done) return; done = true; V.noAIOnce = true; rulesHandle(t); }, 9000);
+    V.hist.push({ r: 'u', t: t }); if (V.hist.length > 10) V.hist = V.hist.slice(-10);
+    google.script.run.withSuccessHandler(function(res){
+      if (done) return; done = true; clearTimeout(timer);
+      if (!res || !res.success || !res.plan) return rulesHandle(t);   // AI가 안 되면 규칙 방식으로
+      execPlan(res.plan);
+    }).withFailureHandler(function(){ if (done) return; done = true; clearTimeout(timer); rulesHandle(t); })
+      .handleAction({ action: 'voiceAgent', text: t, ctx: buildCtx(), history: V.hist.slice(0, -1) });
+  }
+  function sayH(text, then){ V.hist.push({ r: 'a', t: text }); say(text, then); }
+  function execPlan(P){
+    var a = String(P.action || 'say'), g = P.args || {};
+    if (P.ask && a === 'say') return sayH(P.ask, listenAgain);
+    switch (a) {
+      case 'navigate': go(g.screen); return sayH(P.say || '화면을 열었어요.', listenAgain);
+      case 'brief': { var ds = g.date || ymd(new Date()); var lab = ds === ymd(new Date()) ? '오늘' : ''; window.v3SelDate = ds; go(lab ? 'hub' : 'schedule'); return sayH(briefing(ds, lab || ''), listenAgain); }
+      case 'add_todo': if (!g.task) break; V.hist.push({ r: 'a', t: '할 일 화면에 채움' }); return planTodo(g.task);
+      case 'complete_todo': return planCompleteTodo(g.match || '', P.say);
+      case 'add_schedule': if (!g.title) break; return planSched('', g);
+      case 'move_schedule': return planMoveSched(g, P.say);
+      case 'add_fieldlog': if (!g.memo) break; return planMemo(g.memo, g.region);
+      case 'find_contact': return lookup(g.query || '');
+      case 'mark_paid': return planPaid(g);
+      case 'create_doc': return planDoc(g);
+    }
+    return sayH(P.say || P.ask || '잘 못 알아들었어요. 다시 말해 주세요.', listenAgain);
+  }
+  function lookup(q){
+    var hits = findPeople(q); go('contacts');
+    setTimeout(function(){ var si = $('contactSearch'); if (si) { si.value = q; try { searchContacts(); } catch (e) {} mark(si); } }, 300);
+    if (!hits.length) return sayH(q + ' 연락처를 찾지 못했어요.', listenAgain);
+    return sayH(hits.slice(0, 2).map(function(h){ return h.who + ', ' + String(h.phone).replace(/-/g, ' '); }).join('. ') + '.', listenAgain);
+  }
+  function planCompleteTodo(match){
+    var list = activeTodos(), k = nk(match);
+    var hit = list.filter(function(x){ return nk(x.task) === k; })[0] || list.filter(function(x){ return k && (nk(x.task).indexOf(k) >= 0 || k.indexOf(nk(x.task)) >= 0); })[0];
+    if (!hit) return sayH('"' + match + '" 할 일을 찾지 못했어요.', listenAgain);
+    go('todo');
+    setTimeout(function(){
+      try { deleteTodo(hit.rowIndex); } catch (e) {}
+      if ($('cleanOkBtn')) { V.pending = { kind: 'confirmBox', ok: 'cleanOkBtn', no: 'cleanCancelBtn', done: '완료 처리했어요.' }; $('vaAsk').classList.add('on'); sayH('"' + hit.task + '" 완료 처리할까요?', listenAgain); }
+      else sayH('완료 처리 창을 열지 못했어요.', listenAgain);
+    }, 350);
+  }
+  function planMoveSched(g){
+    var from = g.from_date || ymd(new Date()); window.v3SelDate = from; go('schedule');
+    setTimeout(function(){
+      try { v3RenderDay(); } catch (e) {}
+      var day = window.__v3DaySched || [], k = nk(g.match), idx = -1;
+      day.forEach(function(x, i){ if (idx < 0 && k && nk(x.title || x.content).indexOf(k) >= 0) idx = i; });
+      if (idx < 0) return sayH('그날 "' + (g.match || '') + '" 일정을 찾지 못했어요.', listenAgain);
+      try { v3SchedStartEdit(idx); } catch (e) {}
+      setTimeout(function(){
+        var to = g.to_date || from; window.v3SelDate = to;
+        var ti = $('v3sfTitle'); if (ti) { var base = ti.value.replace(/^\d{1,2}:\d{2}\s*/, ''); setVal(ti, (g.to_time ? g.to_time + ' ' : (ti.value.match(/^\d{1,2}:\d{2}\s*/) || [''])[0]) + base); }
+        ask((day[idx].title || '') + ' 일정을 ' + koDate(to) + (g.to_time ? ' ' + koTime(g.to_time) : '') + '로 바꿨어요.', function(){ window.v3SelDate = to; try { v3SchedSave(); return '일정을 바꿨어요.'; } catch (e) { return '바꾸지 못했어요. 화면에서 저장해 주세요.'; } });
+      }, 200);
+    }, 400);
+  }
+  function planPaid(g){
+    var list = unpaid(), k = nk(g.company), amt = Number(String(g.amount || '').replace(/[^\d]/g, '')) || 0;
+    var cands = list.filter(function(x){ return k && (nk(x.company).indexOf(k) >= 0 || k.indexOf(nk(x.company)) >= 0); });
+    if (amt) cands.sort(function(a, b){ return Math.abs((Number(a.amount) || 0) - amt) - Math.abs((Number(b.amount) || 0) - amt); });
+    var d = cands[0];
+    go('deposit');
+    if (!d) return sayH((g.company || '') + ' 미입금 건을 찾지 못했어요.', listenAgain);
+    setTimeout(function(){
+      var card = [].slice.call(document.querySelectorAll('.btn-dep-done')).map(function(b){ return b.closest('div[class], div'); }).filter(function(c){ return c && c.textContent.indexOf(d.company) >= 0; })[0];
+      if (card) mark(card);
+      ask(d.company + ' ' + won(d.amount) + (d.memo ? ', ' + d.memo : '') + ' 건을 입금완료로 바꿀게요.', function(){ try { completeDepositItem(d); return '입금완료로 저장했어요.'; } catch (e) { return '처리하지 못했어요. 화면에서 눌러 주세요.'; } });
+    }, 400);
+  }
+  function planDoc(g){
+    var type = /^(EST|PO|TAX)$/.test(g.doc_type || '') ? g.doc_type : 'EST', nm = { EST: '견적서', PO: '발주서', TAX: '거래명세서' }[type];
+    try { window.currentWorkspaceApp = 'doc'; if (typeof v3DocGo === 'function') v3DocGo(type); openDocWriterNew(); v3DocTab(type); } catch (e) {}
+    setTimeout(function(){
+      try {
+        if (g.project) { var fp = $('fieldProject'); if (fp) { fp.innerText = g.project; mark(fp); } }
+        if (g.partner) { var rc = $('recvCompany'); if (rc) { rc.innerText = g.partner; mark(rc); } try { fillRecvFromPartnerIfMissing_(); } catch (e) {} }
+        var items = Array.isArray(g.items) ? g.items : [];
+        if (items.length) {
+          var tb = $('itemsBody'); tb.innerHTML = '';
+          items.forEach(function(it, i){
+            var q = Number(it.qty) || 1, pr = Number(String(it.price || 0).replace(/[^\d]/g, '')) || 0;
+            var tr = createItemRowElem(i + 1, it.name || '', it.unit || 'EA', q, pr, Math.round(q * pr), '', pr, '', '🎤 음성으로 입력');
+            if (pr > 0) tr.dataset.hasParsedPrice = 'true';
+            tb.appendChild(tr);
+            if (!pr) { var ni = tr.querySelector('.item-name-input'); try { if (ni) filterItemListDropdown(ni, true); } catch (e) {} }
+          });
+        }
+        if (typeof g.vat_included === 'boolean') setDocVatIncluded(g.vat_included);
+        if (g.remarks) { var rm = $('docRemarks'); if (rm) rm.innerText = [rm.innerText.trim(), g.remarks].filter(Boolean).join('\n'); }
+        calculateTotals(); try { updateSheetScale(); } catch (e) {}
+      } catch (e) {}
+      var tot = ($('grandTotal') || {}).innerText || '';
+      ask(nm + '에 ' + (g.partner || '') + ' ' + (g.project || '') + ', 품목 ' + (Array.isArray(g.items) ? g.items.length : 0) + '개' + (tot ? ', 합계 ' + tot.replace(/[₩\s원]/g, '') + '원' : '') + ' 채웠어요. 화면을 확인해 주세요.', function(){
+        if (!($('fieldProject') || {}).innerText) return '공사명이 없어서 저장하지 못했어요. 공사명을 말해 주세요.';
+        try { saveCurrentDocument(); return nm + '를 문서대장에 저장했어요. PDF는 화면에서 저장해 주세요.'; } catch (e) { return '저장하지 못했어요.'; }
+      });
+    }, 600);
   }
 
   window.vaOpen = function(){
