@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261119-1843';
+var APP_BUILD = '20261122-0206';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -3549,7 +3549,7 @@ else google.script.run.withSuccessHandler(onDone).handleAction(Object.assign({},
 google.script.run.withSuccessHandler(onDone).handleAction(Object.assign({}, payload, { action: "updateProject" }));
 })
 .syncProjectDirectV2(payload);
-});
+}, '종료', '#475569');
 }
 function deleteProjectCurrent() {
 const row = collectProjectUpdateRow();
@@ -5118,6 +5118,7 @@ ${taxBtnHtml}
 ${done
 ? `<button class="btn-todo-edit" style="background:#F1F5F9; color:#334155; border-color:#CBD5E1;" onclick="reopenDoc('${r.id}')">↩ 되돌리기</button>`
 : `<button class="btn-todo-edit" style="background:#1F5FD6; color:#fff; border-color:#1F5FD6;" onclick="completeDoc('${r.id}')">✅ 완료</button>`}
+<button class="btn-todo-edit" style="background:#FEF2F2; color:#B91C1C; border-color:#FECACA;" onclick="hideDocRecord('${r.id}')" title="잘못 만들었거나 중복된 문서를 대장에서 지워요 (구글 시트에는 기록이 남아 되살릴 수 있어요)">🗑 삭제</button>
 </div>
 `;
 container.appendChild(card);
@@ -5180,10 +5181,21 @@ if (typeof renderTaxBatchQueue === 'function') renderTaxBatchQueue();
 if (typeof renderTaxInstantConfirmCard === 'function') renderTaxInstantConfirmCard();
 window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+function hideDocRecord(id) {
+var d = (allDocRecords || []).find(function(r) { return String(r.id) === String(id); }) || {};
+showCustomConfirm('이 문서를 대장에서 삭제할까요?\n' + (d.project || d.recvCompany || id) + '\n\n(중복·잘못 만든 문서 정리용 — 구글 시트 문서대장에는 기록이 남아 필요하면 되살릴 수 있어요. 드라이브 PDF는 그대로예요.)', function() {
+allDocRecords = (allDocRecords || []).filter(function(r) { return String(r.id) !== String(id); });
+try { updatePipelineSummaryCounts(); } catch (e) {}
+renderDocCards(); try { renderCalendar(); } catch (e) {}
+google.script.run.withSuccessHandler(function(res) { showToast(res && res.success ? '🗑 대장에서 삭제했어요.' : '삭제를 서버에 반영하지 못했어요.'); })
+.withFailureHandler(function(err) { showToast('삭제 반영 오류: ' + (err && err.message || err)); })
+.handleAction({ action: 'deleteDocument', id: id });
+});
+}
 function completeDoc(id) {
 showCustomConfirm("완료 처리할까요?\n대장 목록에서만 빠지고, 달력과 구글 시트에는 그대로 남습니다.", function() {
 updateDocStatus(id, '완료');
-});
+}, '완료', '#1F5FD6');
 }
 function reopenDoc(id) {
 updateDocStatus(id, '수금');
@@ -9834,7 +9846,7 @@ downloadHometaxBatchExcelList_(extType, targetList);
 
 /* 홈택스 공식 일괄발급 양식(엑셀업로드양식)에 7행부터 값만 채우기 — 앱과 같은 폴더의 hometax_tax_template.xls */
 var HT_TPL = null;
-(function() { try { fetch('hometax_tax_template.xls', { cache: 'force-cache' }).then(function(r) { return r.ok ? r.arrayBuffer() : null; }).then(function(b) { if (b) HT_TPL = b; }).catch(function() {}); } catch (e) {} })();
+// (공식 양식 채우기는 홈택스가 못 읽어서 꺼 둠 → 양식 파일도 내려받지 않음)
 function hometaxWorkbook_(list) {
   var aoa = buildHometaxWorksheetMatrix(list), hi = -1;
   for (var i = 0; i < aoa.length; i++) { if (/^전자\(세금\)계산서\s*종류/.test(String((aoa[i] || [])[0] || ''))) { hi = i; break; } }
