@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261123-1137';
+var APP_BUILD = '20261123-1149';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -13212,17 +13212,29 @@ runExtractInboxNow();
 .withFailureHandler(function(err) { if (st) st.innerText = '❌ ' + (err.message || err); })
 .getExtractQueueBackend({ showDone: !!(document.getElementById('exiShowDone') || {}).checked });
 }
-function blockExtractSender(sender) {
-var dom = String(sender).split('@')[1] || '';
-var free = /^(naver\.com|gmail\.com|hanmail\.net|daum\.net|nate\.com|kakao\.com|hotmail\.com|outlook\.com|icloud\.com)$/i.test(dom);
-var whole = !!(dom && !free);   // 회사 도메인이면 그 회사 메일 전체, 네이버·지메일 같은 개인 메일이면 그 주소만
-var target = whole ? '@' + dom + ' (이 회사 메일 전체)' : sender;
-showCustomConfirm('앞으로 ' + target + ' 에서 오는 메일은 추출함에 넣지 않을까요?\n이 보낸 사람의 대기 카드도 모두 제외돼요.\n(거래처 메일이 아닌 것만 막아 주세요)', function() {
+function blockExtractSender(id) {
+var it = (exiData.list || []).find(function(x) { return x.id === id; }); if (!it || !it.sender) return;
+var old = document.getElementById('exiBlockBox'); if (old) old.remove();
+var box = document.createElement('div'); box.id = 'exiBlockBox';
+box.style.cssText = 'position:fixed;inset:0;z-index:100060;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:16px';
+var b = 'display:block;width:100%;text-align:left;padding:12px 14px;margin-top:8px;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;';
+box.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;padding:16px">' +
+'<b style="font-size:16px">🚫 이런 메일 받지 않기</b><div style="font-size:12.5px;color:#475569;margin:6px 0 4px;word-break:break-all">' + exiEsc_(it.sender) + '<br>' + exiEsc_(it.name || '') + '</div>' +
+'<button type="button" id="exiBlkSubj" style="' + b + 'background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46">① 이 주소의 <u>이런 제목</u> 메일만 받지 않기 (추천)<br><span style="font-weight:600;font-size:12px">같은 업체가 보내는 다른 메일(서류 등)은 계속 받아요</span></button>' +
+'<button type="button" id="exiBlkAddr" style="' + b + 'background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B">② 이 주소에서 오는 메일 전부 받지 않기<br><span style="font-weight:600;font-size:12px">거래와 상관없는 곳일 때만</span></button>' +
+'<button type="button" id="exiBlkNo" style="' + b + 'background:#F1F5F9;border:1px solid #E2E8F0;color:#334155;text-align:center">취소</button></div>';
+document.body.appendChild(box);
+var go = function(onlySubject) {
+box.remove();
 google.script.run.withSuccessHandler(function(res) {
-if (res && res.success) { showToast('🚫 ' + res.blocked + ' 메일은 앞으로 받지 않아요' + (res.excluded ? ' · 대기 ' + res.excluded + '건 제외' : '')); try { loadExtractQueue(); } catch (e) {} }
+if (res && res.success) { showToast('🚫 앞으로 ' + res.blocked + '은 받지 않아요' + (res.excluded ? ' · 이 카드 제외' : '')); try { loadExtractQueue(); } catch (e) {} }
 else showToast('⚠️ ' + ((res && res.error) || '처리하지 못했어요'));
-}).withFailureHandler(function(e) { showToast('⚠️ ' + (e.message || e)); }).blockExtractSenderBackend({ sender: sender, wholeDomain: whole });
-}, '받지 않기', '#B91C1C');
+}).withFailureHandler(function(e) { showToast('⚠️ ' + (e.message || e)); }).blockExtractSenderBackend({ id: it.id, sender: it.sender, fileId: it.fileId, onlySubject: onlySubject });
+};
+document.getElementById('exiBlkSubj').onclick = function() { go(true); };
+document.getElementById('exiBlkAddr').onclick = function() { go(false); };
+document.getElementById('exiBlkNo').onclick = function() { box.remove(); };
+box.addEventListener('click', function(e) { if (e.target === box) box.remove(); });
 }
 function exiTypeOf_(it) { return it.status === '확인필요' || !it.type ? '확인필요' : it.type; }
 function renderExtractQueue() {
@@ -13246,16 +13258,16 @@ var ty = exiTypeOf_(it);
 var title = it.company || it.site || it.name;
 var sub = [it.site && it.site !== title ? '📍 ' + it.site : '', it.summary, it.total ? '₩' + Number(String(it.total).replace(/[^0-9.-]/g, '') || 0).toLocaleString() : '', it.contact, it.phone].filter(Boolean).join(' · ');
 var meta = it.at + ' · ' + (it.source === '메일' ? '✉️ ' + (it.sender || '메일') : '📥 추출함') + ' · ' + it.name + (it.auto ? ' · 자동판정: ' + it.auto : '');
-var isDone = ['완료', '제외', '중복'].indexOf(it.status) !== -1;
+var isDone = ['완료', '제외', '중복', '보관'].indexOf(it.status) !== -1;
 var sel = '<select onchange="changeExtractType(\'' + it.id + '\', this.value)">' + ['종류 바꾸기'].concat(EXI_TYPES).map(function(t, i) { return '<option value="' + (i ? t : '') + '"' + (i && t === it.type ? ' selected' : '') + '>' + (i ? (EXI_ICON[t] + ' ' + t) : '🔁 종류 바꾸기') + '</option>'; }).join('') + '</select>';
 var pumpBtn = (it.bundle && !bundlesShown[it.bundle]) ? '<button type="button" onclick="compareExtractPump(\'' + it.bundle + '\', this)">📐 주문서·도면 비교</button>' : '';
 if (it.bundle) bundlesShown[it.bundle] = 1;
 var actions = isDone
-? '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'대기\')">↩ 되살리기</button>'
+? (it.status === '보관' ? '<button type="button" class="go" onclick="window.open(\'https://drive.google.com/file/d/' + it.fileId + '/view\', \'_blank\')">📚 자료 보기</button>' : '') + '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'대기\')">↩ 되살리기</button>'
 : '<button type="button" class="go" onclick="openExtractItem(\'' + it.id + '\')">' + (ty === '확인필요' || ty === '도면' ? '👀 보기' : '열기 ›') + '</button>' + sel + pumpBtn +
 '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'완료\')">✅ 완료</button>' +
 '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'제외\')" style="color:#B91C1C;">제외</button>' +
-(it.source === '메일' && it.sender ? '<button type="button" onclick="blockExtractSender(\'' + exiEsc_(String(it.sender).replace(/'/g, '')) + '\')" style="color:#B91C1C;" title="이 주소에서 오는 메일은 앞으로 추출함에 넣지 않아요">🚫 이 메일 받지 않기</button>' : '') +
+(it.source === '메일' && it.sender ? '<button type="button" onclick="blockExtractSender(\'' + it.id + '\')" style="color:#B91C1C;" title="이런 메일은 앞으로 추출함에 넣지 않아요">🚫 이런 메일 받지 않기</button>' : '') +
 (/01[016789]/.test(String(it.phone || '').replace(/[^0-9]/g, '')) && ['명함', '사업자등록증', '도면', '입금문자'].indexOf(it.type) === -1 ? '<button type="button" onclick="openBizDocRequestSms(\'' + String(it.phone || '').replace(/[^0-9-]/g, '') + '\', \'' + String(it.contact || '').replace(/['\\]/g, '') + '\', \'\', \'' + String(it.company || '').replace(/['\\]/g, '') + '\', \'' + String(it.site || '').replace(/['\\\n]/g, ' ') + '\')" style="color:#5B21B6;">📱 서류 요청</button>' : '');
 return '<div class="exi-card' + (ty === '확인필요' ? ' need' : '') + (isDone ? ' done' : '') + '">' +
 '<div><span class="exi-type">' + (EXI_ICON[ty] || '') + ' ' + ty + '</span>' + (it.conf ? '<span style="font-size:11px; color:#94A3B8;">확신 ' + exiEsc_(it.conf) + '</span>' : '') +
@@ -13292,6 +13304,13 @@ google.script.run.withSuccessHandler(function() { if (typeof loadHubBriefing ===
 function changeExtractType(id, type) {
 if (!type) return;
 var it = (exiData.list || []).find(function(x) { return x.id === id; });
+if (type === '참고자료') {   // 물가정보 등: 업무 자료로 보관 (처리 대기 목록에서는 빠짐 · '완료·제외 포함'에서 보임)
+if (it) { it.type = type; it.status = '보관'; }
+renderExtractQueue();
+google.script.run.updateExtractItemBackend({ id: id, type: type, status: '보관' });
+showToast('📚 참고자료로 보관했어요 (처리완료 › 참고자료)');
+return;
+}
 if (it) { it.type = type; if (it.status === '확인필요') it.status = '대기'; }
 renderExtractQueue();
 google.script.run.updateExtractItemBackend({ id: id, type: type });
