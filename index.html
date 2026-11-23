@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261123-1149';
+var APP_BUILD = '20261123-1340';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -13202,7 +13202,7 @@ google.script.run
 .withSuccessHandler(function(res) {
 if (!res || !res.success) { if (st) st.innerText = '❌ ' + ((res && res.error) || '불러오기 실패') + ' — 편집기에서 setupExtractInbox를 한 번 실행해 주세요'; return; }
 exiData = res;
-renderExtractQueue();
+renderExtractQueue(); syncHubExtractFromExi_();
 // 추출함 폴더에 아직 안 읽은 파일이 있으면 10분 기다리지 않고 바로 읽기 (1분에 한 번까지)
 if (res.unprocessedFiles > 0 && (!window._exiAutoRunAt || Date.now() - window._exiAutoRunAt > 60000)) {
 window._exiAutoRunAt = Date.now();
@@ -13295,10 +13295,21 @@ function openExtractFolder() { if (exiData.folderUrl) window.open(exiData.folder
 function setExtractAuto(on) {
 google.script.run.withSuccessHandler(function(r) { showToast(r && r.success ? (on ? '✅ 10분마다 자동으로 읽어요' : '⏸ 자동 읽기를 껐어요') : ('❌ ' + ((r && r.error) || ''))); }).setExtractAutomationBackend(on);
 }
+// 추출함에서 상태·종류를 바꾸면 오늘업무의 '추출 대기' 숫자도 바로 맞춤 (서버 브리핑을 기다리지 않음)
+function syncHubExtractFromExi_() {
+try {
+var d = window.hubBriefingData; if (!d || !window.exiData) return;
+var q = { count: 0, byType: {} };
+(exiData.list || []).forEach(function(x) { if (['대기', '확인필요', '열람'].indexOf(x.status) < 0) return; var ty = x.status === '확인필요' || !x.type ? '확인필요' : x.type; q.count++; q.byType[ty] = (q.byType[ty] || 0) + 1; });
+var old = (d.extractQueue && d.extractQueue.count) || 0;
+d.extractQueue = q; d.attentionCount = Math.max(0, (d.attentionCount || 0) - old + q.count);
+if (typeof renderHubBriefing === 'function') renderHubBriefing(); else if (typeof v3RenderToday === 'function') v3RenderToday();
+} catch (e) {}
+}
 function setExtractStatus(id, status) {
 var it = (exiData.list || []).find(function(x) { return x.id === id; });
 if (it) it.status = status;
-renderExtractQueue();
+renderExtractQueue(); syncHubExtractFromExi_();
 google.script.run.withSuccessHandler(function() { if (typeof loadHubBriefing === 'function') loadHubBriefing(); }).updateExtractItemBackend({ id: id, status: status });
 }
 function changeExtractType(id, type) {
@@ -13306,13 +13317,13 @@ if (!type) return;
 var it = (exiData.list || []).find(function(x) { return x.id === id; });
 if (type === '참고자료') {   // 물가정보 등: 업무 자료로 보관 (처리 대기 목록에서는 빠짐 · '완료·제외 포함'에서 보임)
 if (it) { it.type = type; it.status = '보관'; }
-renderExtractQueue();
+renderExtractQueue(); syncHubExtractFromExi_();
 google.script.run.updateExtractItemBackend({ id: id, type: type, status: '보관' });
 showToast('📚 참고자료로 보관했어요 (처리완료 › 참고자료)');
 return;
 }
 if (it) { it.type = type; if (it.status === '확인필요') it.status = '대기'; }
-renderExtractQueue();
+renderExtractQueue(); syncHubExtractFromExi_();
 google.script.run.updateExtractItemBackend({ id: id, type: type });
 showToast('🔁 [' + type + ']로 바꿨어요');
 }
