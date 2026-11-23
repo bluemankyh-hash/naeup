@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261123-0946';
+var APP_BUILD = '20261123-1043';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -16302,7 +16302,10 @@ function v3ChooseDocType(cb){
 /* ===== [§35] 본사·공장용 문서 — 단가·금액을 빼고 품명·단위·수량·비고만 (거래처용 PDF는 그대로 두고 '_본사용'으로 따로 저장) ===== */
 (function(){
   var css = document.createElement('style');
-  css.textContent = '#itemsTable.hq-copy th:nth-child(5),#itemsTable.hq-copy th:nth-child(6),#itemsTable.hq-copy tbody td:nth-child(5),#itemsTable.hq-copy tbody td:nth-child(6),#itemsTable.hq-copy tfoot{display:none}';
+  // 칸을 아예 없애면(display:none) 뒤의 비고 칸이 단가 자리(폭 0)로 밀려 찌그러짐 → 칸은 그대로 두고 폭 0 + 내용만 숨김
+  css.textContent = '#itemsTable.hq-copy th:nth-child(5),#itemsTable.hq-copy th:nth-child(6),#itemsTable.hq-copy tbody td:nth-child(5),#itemsTable.hq-copy tbody td:nth-child(6){padding:0 !important;border-left:none !important;border-right:none !important;font-size:0 !important;width:0 !important;max-width:0 !important;overflow:hidden !important}' +
+    '#itemsTable.hq-copy th:nth-child(5) *,#itemsTable.hq-copy th:nth-child(6) *,#itemsTable.hq-copy tbody td:nth-child(5) *,#itemsTable.hq-copy tbody td:nth-child(6) *{display:none !important}' +
+    '#itemsTable.hq-copy tfoot{display:none}';
   document.head.appendChild(css);
   window.setDocHqCopy = function(on){
     window.docHqCopy = !!on;
