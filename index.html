@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261125-0737';
+var APP_BUILD = '20261125-0748';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -13410,83 +13410,120 @@ if (exiFillsForm_(it)) openExtractItem(id, true);
 else { setExtractStatus(id, '완료'); showToast('✅ [' + type + ']로 정리했어요'); }
 }
 /* ===== 매입 거래명세서 단가 확인 → 계산서 발행 요청 (따로 저장하지 않음) ===== */
-function exiNormName_(x) { return String(x || '').toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[\s·.,\-_/*×xX]/g, ''); }
+function exiNormName_(x) { return String(x || '').toLowerCase().replace(/[×xX＊]/g, '*').replace(/[\s·.,\-_/]/g, ''); }
 function exiNormCo_(x) { return String(x || '').replace(/\(\s*주\s*\)|㈜|주식회사|[\s()（）]/g, ''); }
-function exiFindMyPrice_(name, issuer, site) {
+function exiDigits_(x) { return (String(x || '').match(/\d+/g) || []).join('|'); }
+// 내가 시공사에 낸 견적·거래명세서(발주서 제외)에서 같은 품목 단가 찾기 — 규격 숫자까지 같아야 같은 품목
+function exiFindMySell_(name, site) {
 var n = exiNormName_(name); if (!n) return null;
-var ic = exiNormCo_(issuer), ns = String(site || '').replace(/\s+/g, '');
+var dn = exiDigits_(name), ns = String(site || '').replace(/\s+/g, '');
 var best = null;
 (window.allDocRecords || []).forEach(function(r) {
-  if (!r || !Array.isArray(r.items)) return;
-  var rc = exiNormCo_(r.recvCompany), sameCo = ic && rc && (rc === ic || (ic.length >= 3 && (rc.indexOf(ic) >= 0 || ic.indexOf(rc) >= 0)));
+  if (!r || !Array.isArray(r.items) || String(r.docType || '') === 'PO') return;
   var sameSite = ns && String(r.project || '').replace(/\s+/g, '') === ns;
   r.items.forEach(function(x) {
     var xn = exiNormName_(x && x.name); if (!xn) return;
-    var exact = xn === n, part = !exact && n.length >= 4 && xn.length >= 4 && (xn.indexOf(n) >= 0 || n.indexOf(xn) >= 0);
+    var exact = xn === n;
+    var part = !exact && exiDigits_(x.name) === dn && n.length >= 3 && (xn.indexOf(n) >= 0 || n.indexOf(xn) >= 0);
     if (!exact && !part) return;
     var price = Number(String(x.price || '').replace(/[^\d]/g, '')) || 0; if (!price) return;
-    var score = (exact ? 4 : 1) + (r.docType === 'PO' ? 3 : 0) + (sameCo ? 4 : 0) + (sameSite ? 3 : 0);
-    if (!best || score > best.score || (score === best.score && String(r.date || '') > String(best.date || ''))) best = { score: score, price: price, date: r.date, docType: r.docType, project: r.project, co: r.recvCompany, exact: exact };
+    var score = (exact ? 4 : 1) + (sameSite ? 6 : 0);
+    if (!best || score > best.score || (score === best.score && String(r.date || '') > String(best.date || ''))) best = { score: score, price: price, date: r.date, docType: r.docType, project: r.project, co: r.recvCompany, sameSite: sameSite };
   });
 });
 return best;
 }
+function exiDocTypeName_(t) { return ({ EST: '견적서', TAX: '거래명세서', PO: '발주서' })[t] || '문서'; }
 function exiBuyCheckShow_(res) {
 var my = exiMyCo_();
 var it = (exiData.list || []).find(function(x) { return x.id === window.__exiBuyId; }) || {};
 var issuer = res.company && exiNormCo_(res.company) !== my ? res.company : (it.company && exiNormCo_(it.company) !== my ? it.company : '');
 var site = res.site || '';
 var phone = String(res.phone || it.phone || '').replace(/[^0-9]/g, '');
-var items = (window.portalExtractItems || []).slice();
+var items = (window.portalExtractItems || []).map(function(x) { return Object.assign({}, x); });
+var target = 10; try { target = Number(localStorage.getItem('naeup_margin_pct')) || 10; } catch (e) {}
 var won = function(v) { return '₩' + (Number(v) || 0).toLocaleString(); };
-var diff = [], none = 0, total = 0;
-var rows = items.map(function(x) {
-  var amt = Number(x.amount) || (Number(x.qty) || 0) * (Number(x.unitPrice) || 0); total += amt;
-  var m = exiFindMyPrice_(x.name, issuer, site), st;
-  if (!m) { none++; st = '<span style="color:#64748B">기록 없음</span>'; }
-  else if (m.price === Number(x.unitPrice)) st = '<span style="color:#15803D;font-weight:800">✅ 같음</span>';
-  else { diff.push({ name: x.name, a: Number(x.unitPrice), b: m.price }); st = '<span style="color:#B91C1C;font-weight:800">⚠ ' + (Number(x.unitPrice) > m.price ? '+' : '') + won(Number(x.unitPrice) - m.price).replace('₩-', '-₩') + '</span>'; }
-  return '<tr><td style="text-align:left">' + exiEsc_(x.name) + '<div style="font-size:11px;color:#94A3B8">' + exiEsc_(String(x.qty || '')) + ' ' + exiEsc_(x.unit || '') + (m ? ' · 내 ' + (m.docType === 'PO' ? '발주' : '문서') + ' ' + exiEsc_(m.date || '') : '') + '</div></td><td>' + won(x.unitPrice) + '</td><td>' + (m ? won(m.price) : '-') + '</td><td>' + st + '</td></tr>';
-}).join('');
-var docTotal = Number(res.docTotal) || total;
+var docTotal = Number(res.docTotal) || items.reduce(function(s2, x) { return s2 + (Number(x.amount) || (Number(x.qty) || 0) * (Number(x.unitPrice) || 0)); }, 0);
 var vat = res.vatIncluded ? '부가세 포함' : '부가세 별도';
-var head = (my ? '안녕하세요, ' + (document.getElementById('suppName').innerText || '') + '입니다.\n' : '');
-var okMsg = head + (site ? site + ' ' : '') + '거래명세서 단가 확인했습니다.\n합계 ' + won(docTotal) + '(' + vat + ')으로 세금계산서 발행 부탁드립니다.\n감사합니다.';
-var askMsg = head + (site ? site + ' ' : '') + '거래명세서 확인 중 아래 품목 단가가 저희 발주 단가와 달라 확인 부탁드립니다.\n' + diff.map(function(d) { return '- ' + d.name + ': 명세서 ' + won(d.a) + ' / 발주 ' + won(d.b); }).join('\n') + '\n확인 후 수정 명세서 보내 주세요.';
+// 이 현장에 거래한 시공사 (발주서 제외한 내 문서에서)
+var custDoc = (window.allDocRecords || []).filter(function(r) { return r && r.docType !== 'PO' && site && String(r.project || '').replace(/\s+/g, '') === site.replace(/\s+/g, '') && r.recvCompany; }).sort(function(a2, b2) { return String(b2.date || '').localeCompare(String(a2.date || '')); })[0];
 var old = document.getElementById('exiBuyBox'); if (old) old.remove();
 var box = document.createElement('div'); box.id = 'exiBuyBox';
 box.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99991;display:flex;align-items:flex-end;justify-content:center';
-var verdict = !items.length ? '<div style="color:#B45309;font-weight:800">⚠ 품목을 읽지 못했어요. 원본을 보고 직접 확인해 주세요.</div>'
-  : diff.length ? '<div style="color:#B91C1C;font-weight:800">⚠ 단가가 다른 품목 ' + diff.length + '개</div>'
-  : none === items.length ? '<div style="color:#B45309;font-weight:800">비교할 내 발주 기록이 없어요. 원본 단가를 직접 확인해 주세요.</div>'
-  : '<div style="color:#15803D;font-weight:800">✅ 확인된 품목 단가가 모두 같아요' + (none ? ' (기록 없는 ' + none + '개는 직접 확인)' : '') + '</div>';
-box.innerHTML = '<div style="background:#fff;width:100%;max-width:640px;max-height:90vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px 24px;box-sizing:border-box">' +
-  '<div style="font-size:18px;font-weight:900">🔍 매입 거래명세서 단가 확인</div>' +
-  '<div style="font-size:13px;color:#64748B;margin:4px 0 10px">' + exiEsc_(issuer || '발행처 미확인') + (site ? ' · ' + exiEsc_(site) : '') + ' · 합계 ' + won(docTotal) + ' (' + vat + ')</div>' + verdict +
-  '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0" class="exi-buy-tb"><thead><tr style="background:#F1F5F9"><th style="text-align:left;padding:6px">품명</th><th>명세서</th><th>내 발주</th><th>판정</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-  '<div style="font-size:12px;color:#64748B;margin-bottom:8px">문자 받는 번호</div><input id="exiBuyPhone" type="tel" value="' + exiEsc_(phone) + '" placeholder="010-0000-0000" style="width:100%;height:44px;border:1px solid #CBD5E1;border-radius:10px;padding:0 12px;font-size:16px;box-sizing:border-box">' +
-  '<textarea id="exiBuyMsg" style="width:100%;min-height:110px;margin-top:8px;border:1px solid #CBD5E1;border-radius:10px;padding:10px;font-size:14px;box-sizing:border-box"></textarea>' +
-  '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">' +
-  '<button type="button" id="exiBuyOk" style="flex:1 1 45%;height:48px;border:none;border-radius:12px;background:#1F5FD6;color:#fff;font-weight:900">📱 발행 요청 문자</button>' +
-  (diff.length ? '<button type="button" id="exiBuyAsk" style="flex:1 1 45%;height:48px;border:none;border-radius:12px;background:#B91C1C;color:#fff;font-weight:900">📱 단가 문의 문자</button>' : '') +
-  '<button type="button" id="exiBuyOrig" style="flex:1 1 30%;height:44px;border:1px solid #CBD5E1;border-radius:12px;background:#fff;font-weight:800">📄 원본</button>' +
-  '<button type="button" id="exiBuyDone" style="flex:1 1 30%;height:44px;border:1px solid #15803D;border-radius:12px;background:#fff;color:#15803D;font-weight:800">✅ 처리 완료</button>' +
-  '<button type="button" id="exiBuyClose" style="flex:1 1 30%;height:44px;border:none;border-radius:12px;background:#F1F5F9;font-weight:800">닫기</button></div></div>';
 document.body.appendChild(box);
-[].forEach.call(box.querySelectorAll('.exi-buy-tb td'), function(td) { td.style.cssText += ';padding:7px 4px;border-bottom:1px solid #EEF2F6;text-align:right;vertical-align:top'; });
-[].forEach.call(box.querySelectorAll('.exi-buy-tb td:first-child'), function(td) { td.style.textAlign = 'left'; });
-var msgEl = document.getElementById('exiBuyMsg'); msgEl.value = diff.length ? askMsg : okMsg;
-var send = function(body) {
-  var d = document.getElementById('exiBuyPhone').value.replace(/[^0-9]/g, '');
-  var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
-  if (!mobile || !d) { try { navigator.clipboard.writeText(body); } catch (e) { try { dlvFallbackCopy_(body); } catch (e2) {} } showToast('📋 문자 내용을 복사했어요.' + (d ? ' ' + d + ' 로 보내 주세요.' : ' 받는 번호를 넣으면 문자 앱이 바로 열려요.')); return; }
-  var a = document.createElement('a'); a.href = 'sms:' + d + (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') ? '&' : '?') + 'body=' + encodeURIComponent(body); a.target = '_top'; document.body.appendChild(a); a.click(); a.remove();
-};
-document.getElementById('exiBuyOk').onclick = function() { if (diff.length) msgEl.value = okMsg; send(msgEl.value); };
-if (diff.length) document.getElementById('exiBuyAsk').onclick = function() { msgEl.value = askMsg; send(msgEl.value); };
-document.getElementById('exiBuyOrig').onclick = function() { exiOpenOriginal(window.__exiBuyId); };
-document.getElementById('exiBuyDone').onclick = function() { box.remove(); if (window.__exiBuyId) setExtractStatus(window.__exiBuyId, '완료'); try { closeSection('manholeOrderSection'); } catch (e) {} try { openExtractInbox(); } catch (e) {} showToast('✅ 처리 완료로 정리했어요'); };
-document.getElementById('exiBuyClose').onclick = function() { box.remove(); };
+var low = [], none = 0;
+function render() {
+  low = []; none = 0;
+  var rows = items.map(function(x) {
+    var buy = Number(x.unitPrice) || 0;
+    var m = exiFindMySell_(x.name, site); x._sell = m ? m.price : 0;
+    var st, mg = '';
+    if (!m) { none++; st = '<span style="color:#64748B">견적 없음</span>'; }
+    else {
+      var pct = buy ? Math.round((m.price - buy) / buy * 1000) / 10 : 0; mg = pct + '%';
+      if (m.price < buy) { low.push(x); st = '<span style="color:#B91C1C;font-weight:900">❌ 역마진</span>'; }
+      else if (pct < target) { low.push(x); st = '<span style="color:#B45309;font-weight:900">⚠ 마진 부족</span>'; }
+      else st = '<span style="color:#15803D;font-weight:800">✅ OK</span>';
+    }
+    return '<tr><td>' + exiEsc_(x.name) + '<div style="font-size:11px;color:#94A3B8">' + exiEsc_(String(x.qty || '')) + ' ' + exiEsc_(x.unit || '') + (m ? ' · 내 ' + exiDocTypeName_(m.docType) + ' ' + exiEsc_(m.date || '') + (m.sameSite ? '' : ' (다른 현장)') : '') + '</div></td><td>' + won(buy) + '</td><td>' + (m ? won(m.price) : '-') + '</td><td>' + (mg ? '<b>' + mg + '</b><br>' : '') + st + '</td></tr>';
+  }).join('');
+  var verdict = !items.length ? '<div style="color:#B45309;font-weight:800">⚠ 품목을 읽지 못했어요. 원본을 보고 직접 확인해 주세요.</div>'
+    : none === items.length ? '<div style="color:#1F5FD6;font-weight:800">이 품목들로 시공사에 준 견적이 없어요. 아래 [시공사용 거래명세서 만들기]로 시공사에 보낼 명세서를 만드세요.</div>'
+    : low.length ? '<div style="color:#B91C1C;font-weight:800">⚠ 마진 ' + target + '% 안 되는 품목 ' + low.length + '개' + (none ? ' · 견적 없는 품목 ' + none + '개' : '') + '</div>'
+    : '<div style="color:#15803D;font-weight:800">✅ 견적 있는 품목은 모두 마진 ' + target + '% 이상이에요' + (none ? ' (견적 없는 품목 ' + none + '개)' : '') + '</div>';
+  box.innerHTML = '<div style="background:#fff;width:100%;max-width:640px;max-height:90vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px 24px;box-sizing:border-box">' +
+    '<div style="font-size:18px;font-weight:900">🔍 매입 거래명세서 마진 확인</div>' +
+    '<div style="font-size:13px;color:#475569;margin:4px 0 2px">받은 명세서 단가(<b>매입</b>)와 내가 시공사에 준 견적·명세서 단가(<b>판매</b>)를 비교해요.</div>' +
+    '<div style="font-size:12px;color:#64748B;margin-bottom:8px">' + exiEsc_(issuer || '매입처 미확인') + (site ? ' · ' + exiEsc_(site) : '') + ' · 매입 합계 ' + won(docTotal) + ' (' + vat + ')' + (custDoc ? ' · 시공사 ' + exiEsc_(custDoc.recvCompany) : '') + '</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:700">목표 마진 <input id="exiBuyPct" type="number" inputmode="numeric" value="' + target + '" style="width:64px;height:34px;border:1px solid #CBD5E1;border-radius:8px;text-align:center;font-size:15px"> %</div>' + verdict +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0" class="exi-buy-tb"><thead><tr style="background:#F1F5F9"><th style="text-align:left;padding:6px">품명</th><th>매입</th><th>내 판매</th><th>마진</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    '<button type="button" id="exiBuyMake" style="width:100%;height:50px;border:none;border-radius:12px;background:#0F766E;color:#fff;font-weight:900;font-size:15px;margin-bottom:8px">📄 시공사용 거래명세서 만들기 (견적 없는 품목 +' + target + '%)</button>' +
+    '<details style="margin:4px 0 8px"><summary style="font-weight:800;color:#1F5FD6;cursor:pointer">📱 매입처에 계산서 발행 요청 문자</summary>' +
+    '<input id="exiBuyPhone" type="tel" value="' + exiEsc_(phone) + '" placeholder="받는 번호" style="width:100%;height:44px;margin-top:8px;border:1px solid #CBD5E1;border-radius:10px;padding:0 12px;font-size:16px;box-sizing:border-box">' +
+    '<textarea id="exiBuyMsg" style="width:100%;min-height:96px;margin-top:8px;border:1px solid #CBD5E1;border-radius:10px;padding:10px;font-size:14px;box-sizing:border-box"></textarea>' +
+    '<button type="button" id="exiBuyOk" style="width:100%;height:46px;margin-top:6px;border:none;border-radius:12px;background:#1F5FD6;color:#fff;font-weight:900">📱 발행 요청 문자 보내기</button></details>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button type="button" id="exiBuyOrig" style="flex:1;height:44px;border:1px solid #CBD5E1;border-radius:12px;background:#fff;font-weight:800">📄 원본</button>' +
+    '<button type="button" id="exiBuyDone" style="flex:1;height:44px;border:1px solid #15803D;border-radius:12px;background:#fff;color:#15803D;font-weight:800">✅ 처리 완료</button>' +
+    '<button type="button" id="exiBuyClose" style="flex:1;height:44px;border:none;border-radius:12px;background:#F1F5F9;font-weight:800">닫기</button></div></div>';
+  [].forEach.call(box.querySelectorAll('.exi-buy-tb td'), function(td) { td.style.cssText += ';padding:7px 4px;border-bottom:1px solid #EEF2F6;text-align:right;vertical-align:top;font-size:13px'; });
+  [].forEach.call(box.querySelectorAll('.exi-buy-tb td:first-child'), function(td) { td.style.textAlign = 'left'; });
+  var head = my ? '안녕하세요, ' + (document.getElementById('suppName').innerText || '') + '입니다.\n' : '';
+  document.getElementById('exiBuyMsg').value = head + (site ? site + ' ' : '') + '거래명세서 확인했습니다.\n합계 ' + won(docTotal) + '(' + vat + ')으로 세금계산서 발행 부탁드립니다.\n감사합니다.';
+  document.getElementById('exiBuyPct').onchange = function() { target = Math.max(0, Number(this.value) || 0); try { localStorage.setItem('naeup_margin_pct', String(target)); } catch (e) {} render(); };
+  document.getElementById('exiBuyOk').onclick = function() {
+    var body = document.getElementById('exiBuyMsg').value, d = document.getElementById('exiBuyPhone').value.replace(/[^0-9]/g, '');
+    var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+    if (!mobile || !d) { try { navigator.clipboard.writeText(body); } catch (e) { try { dlvFallbackCopy_(body); } catch (e2) {} } showToast('📋 문자 내용을 복사했어요.' + (d ? ' ' + d + ' 로 보내 주세요.' : '')); return; }
+    var a = document.createElement('a'); a.href = 'sms:' + d + (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') ? '&' : '?') + 'body=' + encodeURIComponent(body); a.target = '_top'; document.body.appendChild(a); a.click(); a.remove();
+  };
+  document.getElementById('exiBuyMake').onclick = function() { box.remove(); exiMakeMarkupDoc_(items, target, site, custDoc); };
+  document.getElementById('exiBuyOrig').onclick = function() { exiOpenOriginal(window.__exiBuyId); };
+  document.getElementById('exiBuyDone').onclick = function() { box.remove(); if (window.__exiBuyId) setExtractStatus(window.__exiBuyId, '완료'); try { closeSection('manholeOrderSection'); } catch (e) {} try { openExtractInbox(); } catch (e) {} showToast('✅ 처리 완료로 정리했어요'); };
+  document.getElementById('exiBuyClose').onclick = function() { box.remove(); };
+}
+render();
+}
+// 견적 없는 품목: 매입 단가 × (1 + 마진%) → 100원 단위 올림 / 견적 준 품목: 견적 단가 → 시공사에 보낼 거래명세서
+function exiMakeMarkupDoc_(items, pct, site, custDoc) {
+var up = function(v) { return Math.ceil(v / 100) * 100; };
+portalExtractItems = items.map(function(x) {
+  var buy = Number(x.unitPrice) || 0, sell = up(buy * (1 + pct / 100));
+  if (x._sell) sell = x._sell;   // 이미 시공사에 견적 준 품목은 그 단가 그대로 (마진 부족은 확인 화면에서 알려 줌)
+  var q = Number(x.qty) || 1;
+  return { name: x.name, unit: x.unit || 'EA', qty: x.qty, unitPrice: sell, amount: Math.round(q * sell), note: '매입 ' + buy.toLocaleString() + '원 · 마진 ' + (buy ? Math.round((sell - buy) / buy * 1000) / 10 : 0) + '%', raw: x.name };
+});
+var setv = function(id, v) { var el = document.getElementById(id); if (el) el.value = v; };
+setv('exSite', site || '');
+setv('exCompany', custDoc ? custDoc.recvCompany : '');
+setv('exContact', custDoc ? String(custDoc.recvContact || '').replace(/^.*\/\s*/, '') : '');
+setv('exPhone', custDoc ? custDoc.recvTel || '' : '');
+setv('exMemo', '');
+var vc = document.getElementById('exVatIncluded'); if (vc) vc.checked = false;
+if (window.portalExtractMeta) { portalExtractMeta.vatIncluded = false; portalExtractMeta.memo = ''; }
+window.__exiPurpose = 'TAX';
+applyPortalExtractToDocWriter();
+setTimeout(function() { showToast(custDoc ? '📄 마진 ' + pct + '% 거래명세서를 만들었어요. 시공사 [' + custDoc.recvCompany + '] 확인 후 저장·전달하세요.' : '📄 마진 ' + pct + '% 거래명세서를 만들었어요. 받는 곳(시공사)을 고르고 저장·전달하세요.'); }, 900);
 }
 function exiFillsForm_(it) {
 var ty = exiTypeOf_(it);
