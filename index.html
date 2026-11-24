@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261124-1555';
+var APP_BUILD = '20261124-1558';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -12997,6 +12997,7 @@ var phone = document.getElementById('exPhone').value.trim();
 var memo = document.getElementById('exMemo').value.trim();
 closeSection('manholeOrderSection');
 openDocWriterNew();
+if (window.__exiPurpose === 'TAX') { window.__exiPurpose = ''; try { v3DocTab('TAX'); } catch (eTx) {} setTimeout(function() { showToast('🧮 거래명세서로 만들었어요. 확인·저장 후 [계산서 발행]을 눌러 주세요.'); }, 600); }
 document.getElementById('fieldProject').innerText = site;
 // 납품장소: 공사명을 그대로 넣지 않고, 서류에 적힌 납품장소·현장주소 → 같은 현장의 예전 서류 납품장소 순으로 찾고, 없으면 비워 둠
 (function() {
@@ -13270,8 +13271,7 @@ var pumpBtn = (it.bundle && !bundlesShown[it.bundle]) ? '<button type="button" o
 if (it.bundle) bundlesShown[it.bundle] = 1;
 var actions = isDone
 ? (it.status === '보관' ? '<button type="button" class="go" onclick="exiOpenOriginal(\'' + it.id + '\')">📚 자료 보기</button>' : '') + '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'대기\')">↩ 되살리기</button>'
-: (exiFillsForm_(it) ? '<button type="button" class="go" onclick="openExtractItem(\'' + it.id + '\')">읽어서 채우기 ›</button><button type="button" onclick="exiOpenOriginal(\'' + it.id + '\')">📄 원본 보기</button>'
-   : '<button type="button" class="go" onclick="openExtractItem(\'' + it.id + '\')">📄 파일 열기</button>') + sel + pumpBtn +
+: '<button type="button" class="go" onclick="exiOpenAndAsk(\'' + it.id + '\')">열기 ›</button>' + sel + pumpBtn +
 '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'완료\')">✅ 완료</button>' +
 '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'제외\')" style="color:#B91C1C;">제외</button>' +
 (it.source === '메일' && it.sender ? '<button type="button" onclick="blockExtractSender(\'' + it.id + '\')" style="color:#B91C1C;" title="이런 메일은 앞으로 추출함에 넣지 않아요">🚫 이런 메일 받지 않기</button>' : '') +
@@ -13341,6 +13341,54 @@ return new File([arr], name, { type: mime || 'application/octet-stream' });
 }
 // [열기]: 원본 파일을 가져와서 종류에 맞는 화면에 그대로 넣기 (이미 있는 기능 재사용)
 // 원본 파일 열기 — 반드시 버튼을 누른 그 순간에 바로 열어야 휴대폰에서 막히지 않음
+// 열기: 원본을 바로 띄우고, 앱에는 '이 서류는 무엇인가요?'를 띄워 내가 고른 대로 처리
+var EXI_PURPOSES = [
+  { k: '견적·명세', t: '🧾 견적·내역 → 내 견적서·발주서 만들기', d: '본사·거래처와 정한 품목·단가를 가져와요' },
+  { k: 'TAXREQ', t: '🧮 거래명세서 → 계산서 발행', d: '상대가 보낸 명세서로 거래명세서를 만들고 계산서를 발행해요' },
+  { k: '맨홀주문서', t: '🕳️ 맨홀 주문서', d: '' }, { k: '일반발주서', t: '📦 일반 발주서·주문서', d: '' },
+  { k: '납품송장', t: '🚛 납품송장', d: '' }, { k: '사업자등록증', t: '🏢 사업자등록증 → 업체 등록', d: '' },
+  { k: '명함', t: '📇 명함 → 연락처 저장', d: '' }, { k: '입금문자', t: '💰 입금 문자', d: '' },
+  { k: '세금계산서', t: '🧮 받은 세금계산서 (보관)', d: '' }, { k: '도면', t: '📏 도면 (보관)', d: '' },
+  { k: '참고자료', t: '📚 참고자료로 보관', d: '물가정보 등 업무에 필요한 자료' },
+  { k: '제외', t: '🚫 필요 없음 (제외)', d: '' }
+];
+function exiOpenAndAsk(id) {
+var it = (exiData.list || []).find(function(x) { return x.id === id; });
+if (!it) return;
+var ty = exiTypeOf_(it);
+if (ty === '입금문자' && !it.fileId) { openExtractItem(id); return; }
+exiOpenOriginal(id);
+var old = document.getElementById('exiAskBox'); if (old) old.remove();
+var box = document.createElement('div');
+box.id = 'exiAskBox';
+box.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99990;display:flex;align-items:flex-end;justify-content:center';
+var guess = ty;
+box.innerHTML = '<div style="background:#fff;width:100%;max-width:560px;max-height:86vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px 24px;box-sizing:border-box">' +
+  '<div style="font-size:18px;font-weight:900;color:#191F28">이 서류는 무엇인가요?</div>' +
+  '<div style="font-size:13px;color:#64748B;margin:4px 0 12px;line-height:1.5">원본 파일을 새 창에 열었어요. 내용을 보고 골라 주세요.<br>' + exiEsc_(it.company || it.name || '') + (guess && guess !== '확인필요' ? ' · 앱 추측: <b>' + exiEsc_(guess) + '</b>' : '') + '</div>' +
+  EXI_PURPOSES.map(function(p) {
+    var on = p.k === guess;
+    return '<button type="button" data-k="' + p.k + '" style="display:block;width:100%;text-align:left;margin:0 0 8px;padding:12px 14px;border-radius:12px;border:' + (on ? '2px solid #5B21B6;background:#F5F3FF' : '1px solid #E2E8F0;background:#fff') + ';font-size:15px;font-weight:800;color:#191F28">' + p.t + (on ? ' <span style="font-size:12px;color:#5B21B6">추측</span>' : '') + (p.d ? '<div style="font-size:12px;font-weight:500;color:#64748B;margin-top:2px">' + p.d + '</div>' : '') + '</button>';
+  }).join('') +
+  '<div style="display:flex;gap:8px;margin-top:4px"><button type="button" id="exiAskReopen" style="flex:1;height:46px;border-radius:12px;border:1px solid #CBD5E1;background:#fff;font-weight:800">📄 원본 다시 열기</button><button type="button" id="exiAskClose" style="flex:1;height:46px;border-radius:12px;border:none;background:#F1F5F9;font-weight:800">나중에</button></div></div>';
+document.body.appendChild(box);
+box.addEventListener('click', function(e) { if (e.target === box) box.remove(); });
+document.getElementById('exiAskClose').onclick = function() { box.remove(); };
+document.getElementById('exiAskReopen').onclick = function() { exiOpenOriginal(id); };
+[].forEach.call(box.querySelectorAll('button[data-k]'), function(b) { b.onclick = function() { box.remove(); exiApplyPurpose(id, b.getAttribute('data-k')); }; });
+}
+function exiApplyPurpose(id, k) {
+var it = (exiData.list || []).find(function(x) { return x.id === id; });
+if (!it) return;
+window.__exiPurpose = '';
+if (k === '제외') { setExtractStatus(id, '제외'); return; }
+if (k === '참고자료') { changeExtractType(id, '참고자료'); return; }
+var type = k === 'TAXREQ' ? '견적·명세' : k;
+if (exiTypeOf_(it) !== type) { it.type = type; if (it.status === '확인필요') it.status = '대기'; try { google.script.run.updateExtractItemBackend({ id: id, type: type }); } catch (e) {} renderExtractQueue(); syncHubExtractFromExi_(); }
+if (k === 'TAXREQ') window.__exiPurpose = 'TAX';
+if (exiFillsForm_(it)) openExtractItem(id, true);
+else { setExtractStatus(id, '완료'); showToast('✅ [' + type + ']로 정리했어요'); }
+}
 function exiFillsForm_(it) {
 var ty = exiTypeOf_(it);
 if (ty === '입금문자') return true;
@@ -13354,7 +13402,7 @@ var url = 'https://drive.google.com/file/d/' + it.fileId + '/view';
 var w = window.open(url, '_blank');
 if (!w) location.href = url;
 }
-function openExtractItem(id) {
+function openExtractItem(id, fromAsk) {
 var it = (exiData.list || []).find(function(x) { return x.id === id; });
 if (!it) return;
 var ty = exiTypeOf_(it);
@@ -13363,7 +13411,7 @@ if (ty === '입금문자') { closeSection('extractInboxSection'); openBankMessag
 // 읽어서 칸에 채우는 종류가 아니면 → 누르는 즉시 원본 파일을 열기 (서버를 기다렸다 열면 휴대폰이 '팝업 차단'으로 막음)
 var EXI_FILL_TYPES = ['견적·명세', '납품송장', '맨홀주문서', '일반발주서', '사업자등록증', '명함', '펌프장주문서', '펌프장도면'];
 if (isDwg || EXI_FILL_TYPES.indexOf(ty) < 0) { exiOpenOriginal(id); if (ty !== '확인필요') setExtractStatus(id, '열람'); return; }
-if (ty === '펌프장주문서' || ty === '펌프장도면') { exiOpenOriginal(id); }
+if ((ty === '펌프장주문서' || ty === '펌프장도면') && !fromAsk) { exiOpenOriginal(id); }
 document.getElementById('loadingOverlay').style.display = 'flex';
 google.script.run
 .withSuccessHandler(function(r) {
@@ -13404,7 +13452,7 @@ handleContactCardUpload(ev);
 openExternalManholeAutoOrderApp(); switchPortalParserTab('pump');
 }
 setExtractStatus(id, '열람');
-showToast('📂 [' + ty + '] 화면에 불러왔어요. 확인 후 추출함에서 ✅ 완료를 눌러 주세요.');
+showToast(window.__exiPurpose === 'TAX' ? '🧮 거래명세서 내용을 불러왔어요. 확인 후 [📄 문서 작성]을 누르면 거래명세서로 만들어져요.' : '📂 [' + ty + '] 화면에 불러왔어요. 확인 후 추출함에서 ✅ 완료를 눌러 주세요.');
 })
 .withFailureHandler(function(err) { document.getElementById('loadingOverlay').style.display = 'none'; showToast('❌ ' + (err.message || err)); })
 .getExtractFileBackend(it.fileId);
@@ -16316,6 +16364,11 @@ function v3ChooseDocType(cb){
   applyPortalExtractToDocWriter = function(){
     if (!(window.portalExtractItems || []).length && typeof portalExtractItems !== 'undefined' && !portalExtractItems.length) return orig.apply(this, arguments);
     var self = this, args = arguments;
+    if (window.__exiPurpose === 'TAX') {   // 추출함에서 '거래명세서 → 계산서 발행'을 고른 경우: 묻지 않고 거래명세서로
+      orig.apply(self, args);
+      setTimeout(function(){ try { v3DocTab('TAX'); } catch (e) {} try { if (typeof v3SyncTitle === 'function') v3SyncTitle(); } catch (e2) {} }, 80);
+      return;
+    }
     v3ChooseDocType(function(type){
       orig.apply(self, args);
       setTimeout(function(){ try { v3DocTab(type); } catch (e) {} try { if (typeof v3SyncTitle === 'function') v3SyncTitle(); } catch (e2) {} }, 80);
