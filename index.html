@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261124-1558';
+var APP_BUILD = '20261125-0737';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -12933,6 +12933,7 @@ document.getElementById('exLoadedBadge').innerText = (file.name || '사진') + '
 portalExtractMeta.fileName = file.name || '';
 var exTot = document.getElementById('exTotal'); if (exTot) { exTot.style.background = (res.docTotal && res.totalOk === false) ? '#FEF3C7' : ''; exTot.title = (res.docTotal && res.totalOk === false) ? '⚠ 계산 확인: 문서 합계 ' + Number(res.docTotal).toLocaleString() + '원과 다름' : ''; }
 renderPortalExtractTable();
+if (window.__exiPurpose === 'BUY') { window.__exiPurpose = ''; setTimeout(function() { exiBuyCheckShow_(res); }, 50); }
 if (portalExtractItems.length && (res.totalWarn || res.learnedNote)) {
 setPortalExtractStatus_((res.totalWarn ? '⚠️ ' + res.totalWarn : '') + (res.learnedNote ? ' 🧠 ' + res.learnedNote : ''), '#B45309');
 } else if (portalExtractItems.length) {
@@ -13343,8 +13344,9 @@ return new File([arr], name, { type: mime || 'application/octet-stream' });
 // 원본 파일 열기 — 반드시 버튼을 누른 그 순간에 바로 열어야 휴대폰에서 막히지 않음
 // 열기: 원본을 바로 띄우고, 앱에는 '이 서류는 무엇인가요?'를 띄워 내가 고른 대로 처리
 var EXI_PURPOSES = [
+  { k: 'BUYCHK', t: '🔍 매입 거래명세서 → 단가 확인 · 발행 요청', d: '받은 명세서 단가를 내 발주 단가와 비교하고, 계산서 발행 요청 문자를 보내요' },
+  { k: 'BUYPRINT', t: '🖨 매입 계산서·청구서 → 출력', d: '받은 세금계산서·인보이스는 출력만 하고 정리해요' },
   { k: '견적·명세', t: '🧾 견적·내역 → 내 견적서·발주서 만들기', d: '본사·거래처와 정한 품목·단가를 가져와요' },
-  { k: 'TAXREQ', t: '🧮 거래명세서 → 계산서 발행', d: '상대가 보낸 명세서로 거래명세서를 만들고 계산서를 발행해요' },
   { k: '맨홀주문서', t: '🕳️ 맨홀 주문서', d: '' }, { k: '일반발주서', t: '📦 일반 발주서·주문서', d: '' },
   { k: '납품송장', t: '🚛 납품송장', d: '' }, { k: '사업자등록증', t: '🏢 사업자등록증 → 업체 등록', d: '' },
   { k: '명함', t: '📇 명함 → 연락처 저장', d: '' }, { k: '입금문자', t: '💰 입금 문자', d: '' },
@@ -13362,7 +13364,7 @@ var old = document.getElementById('exiAskBox'); if (old) old.remove();
 var box = document.createElement('div');
 box.id = 'exiAskBox';
 box.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99990;display:flex;align-items:flex-end;justify-content:center';
-var guess = ty;
+var guess = exiGuessBuy_(it) || ty;
 box.innerHTML = '<div style="background:#fff;width:100%;max-width:560px;max-height:86vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px 24px;box-sizing:border-box">' +
   '<div style="font-size:18px;font-weight:900;color:#191F28">이 서류는 무엇인가요?</div>' +
   '<div style="font-size:13px;color:#64748B;margin:4px 0 12px;line-height:1.5">원본 파일을 새 창에 열었어요. 내용을 보고 골라 주세요.<br>' + exiEsc_(it.company || it.name || '') + (guess && guess !== '확인필요' ? ' · 앱 추측: <b>' + exiEsc_(guess) + '</b>' : '') + '</div>' +
@@ -13377,17 +13379,114 @@ document.getElementById('exiAskClose').onclick = function() { box.remove(); };
 document.getElementById('exiAskReopen').onclick = function() { exiOpenOriginal(id); };
 [].forEach.call(box.querySelectorAll('button[data-k]'), function(b) { b.onclick = function() { box.remove(); exiApplyPurpose(id, b.getAttribute('data-k')); }; });
 }
+// 받은 서류(매입)인지 추측: 'OO가 (내 회사)에 발행한 …' 같은 설명이 있으면 매입
+function exiMyCo_() { var el = document.getElementById('suppName'); return String(el && el.innerText || '').replace(/\(\s*주\s*\)|㈜|주식회사|\s/g, ''); }
+function exiGuessBuy_(it) {
+var my = exiMyCo_(); if (!my || my.length < 2) return '';
+var txt = [it.memo, it.note, it.aiNote, it.desc, it.summary, it.name, it.subject, it.title].filter(Boolean).join(' ');
+try { txt += ' ' + JSON.stringify(it); } catch (e) {}
+var t = txt.replace(/\(\s*주\s*\)|㈜|주식회사|\s/g, '');
+var toMe = new RegExp(my + '(으로|에게|에|앞)').test(t) && /발행|청구|송부/.test(t);
+var mineIssued = new RegExp(my + '(가|이|에서)발행').test(t);
+if (!toMe || mineIssued) return '';
+return /인보이스|청구서|invoice|세금계산서|계산서/i.test(txt) && !/거래명세/.test(txt) ? 'BUYPRINT' : 'BUYCHK';
+}
 function exiApplyPurpose(id, k) {
 var it = (exiData.list || []).find(function(x) { return x.id === id; });
 if (!it) return;
 window.__exiPurpose = '';
+if (k === 'BUYPRINT') {
+  setExtractStatus(id, '완료');
+  try { google.script.run.updateExtractItemBackend({ id: id, type: '세금계산서', status: '완료' }); } catch (e) {}
+  showCustomConfirm('🖨 원본 창에서 출력해 주세요.\n(아이폰: 공유 버튼 › 프린트 / PC: Ctrl+P)\n\n추출함에서는 완료로 정리했어요.', function() { exiOpenOriginal(id); }, '원본 다시 열기', '#1F5FD6');
+  return;
+}
+if (k === 'BUYCHK') { window.__exiPurpose = 'BUY'; window.__exiBuyId = id; if (exiTypeOf_(it) !== '견적·명세') { it.type = '견적·명세'; try { google.script.run.updateExtractItemBackend({ id: id, type: '견적·명세' }); } catch (e) {} } openExtractItem(id, true); return; }
 if (k === '제외') { setExtractStatus(id, '제외'); return; }
 if (k === '참고자료') { changeExtractType(id, '참고자료'); return; }
-var type = k === 'TAXREQ' ? '견적·명세' : k;
+var type = k;
 if (exiTypeOf_(it) !== type) { it.type = type; if (it.status === '확인필요') it.status = '대기'; try { google.script.run.updateExtractItemBackend({ id: id, type: type }); } catch (e) {} renderExtractQueue(); syncHubExtractFromExi_(); }
-if (k === 'TAXREQ') window.__exiPurpose = 'TAX';
 if (exiFillsForm_(it)) openExtractItem(id, true);
 else { setExtractStatus(id, '완료'); showToast('✅ [' + type + ']로 정리했어요'); }
+}
+/* ===== 매입 거래명세서 단가 확인 → 계산서 발행 요청 (따로 저장하지 않음) ===== */
+function exiNormName_(x) { return String(x || '').toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[\s·.,\-_/*×xX]/g, ''); }
+function exiNormCo_(x) { return String(x || '').replace(/\(\s*주\s*\)|㈜|주식회사|[\s()（）]/g, ''); }
+function exiFindMyPrice_(name, issuer, site) {
+var n = exiNormName_(name); if (!n) return null;
+var ic = exiNormCo_(issuer), ns = String(site || '').replace(/\s+/g, '');
+var best = null;
+(window.allDocRecords || []).forEach(function(r) {
+  if (!r || !Array.isArray(r.items)) return;
+  var rc = exiNormCo_(r.recvCompany), sameCo = ic && rc && (rc === ic || (ic.length >= 3 && (rc.indexOf(ic) >= 0 || ic.indexOf(rc) >= 0)));
+  var sameSite = ns && String(r.project || '').replace(/\s+/g, '') === ns;
+  r.items.forEach(function(x) {
+    var xn = exiNormName_(x && x.name); if (!xn) return;
+    var exact = xn === n, part = !exact && n.length >= 4 && xn.length >= 4 && (xn.indexOf(n) >= 0 || n.indexOf(xn) >= 0);
+    if (!exact && !part) return;
+    var price = Number(String(x.price || '').replace(/[^\d]/g, '')) || 0; if (!price) return;
+    var score = (exact ? 4 : 1) + (r.docType === 'PO' ? 3 : 0) + (sameCo ? 4 : 0) + (sameSite ? 3 : 0);
+    if (!best || score > best.score || (score === best.score && String(r.date || '') > String(best.date || ''))) best = { score: score, price: price, date: r.date, docType: r.docType, project: r.project, co: r.recvCompany, exact: exact };
+  });
+});
+return best;
+}
+function exiBuyCheckShow_(res) {
+var my = exiMyCo_();
+var it = (exiData.list || []).find(function(x) { return x.id === window.__exiBuyId; }) || {};
+var issuer = res.company && exiNormCo_(res.company) !== my ? res.company : (it.company && exiNormCo_(it.company) !== my ? it.company : '');
+var site = res.site || '';
+var phone = String(res.phone || it.phone || '').replace(/[^0-9]/g, '');
+var items = (window.portalExtractItems || []).slice();
+var won = function(v) { return '₩' + (Number(v) || 0).toLocaleString(); };
+var diff = [], none = 0, total = 0;
+var rows = items.map(function(x) {
+  var amt = Number(x.amount) || (Number(x.qty) || 0) * (Number(x.unitPrice) || 0); total += amt;
+  var m = exiFindMyPrice_(x.name, issuer, site), st;
+  if (!m) { none++; st = '<span style="color:#64748B">기록 없음</span>'; }
+  else if (m.price === Number(x.unitPrice)) st = '<span style="color:#15803D;font-weight:800">✅ 같음</span>';
+  else { diff.push({ name: x.name, a: Number(x.unitPrice), b: m.price }); st = '<span style="color:#B91C1C;font-weight:800">⚠ ' + (Number(x.unitPrice) > m.price ? '+' : '') + won(Number(x.unitPrice) - m.price).replace('₩-', '-₩') + '</span>'; }
+  return '<tr><td style="text-align:left">' + exiEsc_(x.name) + '<div style="font-size:11px;color:#94A3B8">' + exiEsc_(String(x.qty || '')) + ' ' + exiEsc_(x.unit || '') + (m ? ' · 내 ' + (m.docType === 'PO' ? '발주' : '문서') + ' ' + exiEsc_(m.date || '') : '') + '</div></td><td>' + won(x.unitPrice) + '</td><td>' + (m ? won(m.price) : '-') + '</td><td>' + st + '</td></tr>';
+}).join('');
+var docTotal = Number(res.docTotal) || total;
+var vat = res.vatIncluded ? '부가세 포함' : '부가세 별도';
+var head = (my ? '안녕하세요, ' + (document.getElementById('suppName').innerText || '') + '입니다.\n' : '');
+var okMsg = head + (site ? site + ' ' : '') + '거래명세서 단가 확인했습니다.\n합계 ' + won(docTotal) + '(' + vat + ')으로 세금계산서 발행 부탁드립니다.\n감사합니다.';
+var askMsg = head + (site ? site + ' ' : '') + '거래명세서 확인 중 아래 품목 단가가 저희 발주 단가와 달라 확인 부탁드립니다.\n' + diff.map(function(d) { return '- ' + d.name + ': 명세서 ' + won(d.a) + ' / 발주 ' + won(d.b); }).join('\n') + '\n확인 후 수정 명세서 보내 주세요.';
+var old = document.getElementById('exiBuyBox'); if (old) old.remove();
+var box = document.createElement('div'); box.id = 'exiBuyBox';
+box.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99991;display:flex;align-items:flex-end;justify-content:center';
+var verdict = !items.length ? '<div style="color:#B45309;font-weight:800">⚠ 품목을 읽지 못했어요. 원본을 보고 직접 확인해 주세요.</div>'
+  : diff.length ? '<div style="color:#B91C1C;font-weight:800">⚠ 단가가 다른 품목 ' + diff.length + '개</div>'
+  : none === items.length ? '<div style="color:#B45309;font-weight:800">비교할 내 발주 기록이 없어요. 원본 단가를 직접 확인해 주세요.</div>'
+  : '<div style="color:#15803D;font-weight:800">✅ 확인된 품목 단가가 모두 같아요' + (none ? ' (기록 없는 ' + none + '개는 직접 확인)' : '') + '</div>';
+box.innerHTML = '<div style="background:#fff;width:100%;max-width:640px;max-height:90vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px 24px;box-sizing:border-box">' +
+  '<div style="font-size:18px;font-weight:900">🔍 매입 거래명세서 단가 확인</div>' +
+  '<div style="font-size:13px;color:#64748B;margin:4px 0 10px">' + exiEsc_(issuer || '발행처 미확인') + (site ? ' · ' + exiEsc_(site) : '') + ' · 합계 ' + won(docTotal) + ' (' + vat + ')</div>' + verdict +
+  '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0" class="exi-buy-tb"><thead><tr style="background:#F1F5F9"><th style="text-align:left;padding:6px">품명</th><th>명세서</th><th>내 발주</th><th>판정</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+  '<div style="font-size:12px;color:#64748B;margin-bottom:8px">문자 받는 번호</div><input id="exiBuyPhone" type="tel" value="' + exiEsc_(phone) + '" placeholder="010-0000-0000" style="width:100%;height:44px;border:1px solid #CBD5E1;border-radius:10px;padding:0 12px;font-size:16px;box-sizing:border-box">' +
+  '<textarea id="exiBuyMsg" style="width:100%;min-height:110px;margin-top:8px;border:1px solid #CBD5E1;border-radius:10px;padding:10px;font-size:14px;box-sizing:border-box"></textarea>' +
+  '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">' +
+  '<button type="button" id="exiBuyOk" style="flex:1 1 45%;height:48px;border:none;border-radius:12px;background:#1F5FD6;color:#fff;font-weight:900">📱 발행 요청 문자</button>' +
+  (diff.length ? '<button type="button" id="exiBuyAsk" style="flex:1 1 45%;height:48px;border:none;border-radius:12px;background:#B91C1C;color:#fff;font-weight:900">📱 단가 문의 문자</button>' : '') +
+  '<button type="button" id="exiBuyOrig" style="flex:1 1 30%;height:44px;border:1px solid #CBD5E1;border-radius:12px;background:#fff;font-weight:800">📄 원본</button>' +
+  '<button type="button" id="exiBuyDone" style="flex:1 1 30%;height:44px;border:1px solid #15803D;border-radius:12px;background:#fff;color:#15803D;font-weight:800">✅ 처리 완료</button>' +
+  '<button type="button" id="exiBuyClose" style="flex:1 1 30%;height:44px;border:none;border-radius:12px;background:#F1F5F9;font-weight:800">닫기</button></div></div>';
+document.body.appendChild(box);
+[].forEach.call(box.querySelectorAll('.exi-buy-tb td'), function(td) { td.style.cssText += ';padding:7px 4px;border-bottom:1px solid #EEF2F6;text-align:right;vertical-align:top'; });
+[].forEach.call(box.querySelectorAll('.exi-buy-tb td:first-child'), function(td) { td.style.textAlign = 'left'; });
+var msgEl = document.getElementById('exiBuyMsg'); msgEl.value = diff.length ? askMsg : okMsg;
+var send = function(body) {
+  var d = document.getElementById('exiBuyPhone').value.replace(/[^0-9]/g, '');
+  var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+  if (!mobile || !d) { try { navigator.clipboard.writeText(body); } catch (e) { try { dlvFallbackCopy_(body); } catch (e2) {} } showToast('📋 문자 내용을 복사했어요.' + (d ? ' ' + d + ' 로 보내 주세요.' : ' 받는 번호를 넣으면 문자 앱이 바로 열려요.')); return; }
+  var a = document.createElement('a'); a.href = 'sms:' + d + (/iPhone|iPad|iPod/i.test(navigator.userAgent || '') ? '&' : '?') + 'body=' + encodeURIComponent(body); a.target = '_top'; document.body.appendChild(a); a.click(); a.remove();
+};
+document.getElementById('exiBuyOk').onclick = function() { if (diff.length) msgEl.value = okMsg; send(msgEl.value); };
+if (diff.length) document.getElementById('exiBuyAsk').onclick = function() { msgEl.value = askMsg; send(msgEl.value); };
+document.getElementById('exiBuyOrig').onclick = function() { exiOpenOriginal(window.__exiBuyId); };
+document.getElementById('exiBuyDone').onclick = function() { box.remove(); if (window.__exiBuyId) setExtractStatus(window.__exiBuyId, '완료'); try { closeSection('manholeOrderSection'); } catch (e) {} try { openExtractInbox(); } catch (e) {} showToast('✅ 처리 완료로 정리했어요'); };
+document.getElementById('exiBuyClose').onclick = function() { box.remove(); };
 }
 function exiFillsForm_(it) {
 var ty = exiTypeOf_(it);
@@ -13452,7 +13551,7 @@ handleContactCardUpload(ev);
 openExternalManholeAutoOrderApp(); switchPortalParserTab('pump');
 }
 setExtractStatus(id, '열람');
-showToast(window.__exiPurpose === 'TAX' ? '🧮 거래명세서 내용을 불러왔어요. 확인 후 [📄 문서 작성]을 누르면 거래명세서로 만들어져요.' : '📂 [' + ty + '] 화면에 불러왔어요. 확인 후 추출함에서 ✅ 완료를 눌러 주세요.');
+showToast(window.__exiPurpose === 'BUY' ? '🔍 명세서를 읽고 내 발주 단가와 비교하는 중이에요...' : window.__exiPurpose === 'TAX' ? '🧮 거래명세서 내용을 불러왔어요. 확인 후 [📄 문서 작성]을 누르면 거래명세서로 만들어져요.' : '📂 [' + ty + '] 화면에 불러왔어요. 확인 후 추출함에서 ✅ 완료를 눌러 주세요.');
 })
 .withFailureHandler(function(err) { document.getElementById('loadingOverlay').style.display = 'none'; showToast('❌ ' + (err.message || err)); })
 .getExtractFileBackend(it.fileId);
