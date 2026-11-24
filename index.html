@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261124-0947';
+var APP_BUILD = '20261124-1555';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -13269,8 +13269,9 @@ var sel = '<select onchange="changeExtractType(\'' + it.id + '\', this.value)">'
 var pumpBtn = (it.bundle && !bundlesShown[it.bundle]) ? '<button type="button" onclick="compareExtractPump(\'' + it.bundle + '\', this)">📐 주문서·도면 비교</button>' : '';
 if (it.bundle) bundlesShown[it.bundle] = 1;
 var actions = isDone
-? (it.status === '보관' ? '<button type="button" class="go" onclick="window.open(\'https://drive.google.com/file/d/' + it.fileId + '/view\', \'_blank\')">📚 자료 보기</button>' : '') + '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'대기\')">↩ 되살리기</button>'
-: '<button type="button" class="go" onclick="openExtractItem(\'' + it.id + '\')">' + (ty === '확인필요' || ty === '도면' ? '👀 보기' : '열기 ›') + '</button>' + sel + pumpBtn +
+? (it.status === '보관' ? '<button type="button" class="go" onclick="exiOpenOriginal(\'' + it.id + '\')">📚 자료 보기</button>' : '') + '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'대기\')">↩ 되살리기</button>'
+: (exiFillsForm_(it) ? '<button type="button" class="go" onclick="openExtractItem(\'' + it.id + '\')">읽어서 채우기 ›</button><button type="button" onclick="exiOpenOriginal(\'' + it.id + '\')">📄 원본 보기</button>'
+   : '<button type="button" class="go" onclick="openExtractItem(\'' + it.id + '\')">📄 파일 열기</button>') + sel + pumpBtn +
 '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'완료\')">✅ 완료</button>' +
 '<button type="button" onclick="setExtractStatus(\'' + it.id + '\', \'제외\')" style="color:#B91C1C;">제외</button>' +
 (it.source === '메일' && it.sender ? '<button type="button" onclick="blockExtractSender(\'' + it.id + '\')" style="color:#B91C1C;" title="이런 메일은 앞으로 추출함에 넣지 않아요">🚫 이런 메일 받지 않기</button>' : '') +
@@ -13278,7 +13279,7 @@ var actions = isDone
 return '<div class="exi-card' + (ty === '확인필요' ? ' need' : '') + (isDone ? ' done' : '') + '">' +
 '<div><span class="exi-type">' + (EXI_ICON[ty] || '') + ' ' + ty + '</span>' + (it.conf ? '<span style="font-size:11px; color:#94A3B8;">확신 ' + exiEsc_(it.conf) + '</span>' : '') +
 (it.status === '열람' ? ' <span style="font-size:11px; color:#0369A1; font-weight:800;">👁 열어봄</span>' : '') + (isDone ? ' <span style="font-size:11px; color:#64748B; font-weight:800;">' + exiEsc_(it.status) + '</span>' : '') + '</div>' +
-'<div class="exi-title">' + exiEsc_(title) + '</div>' +
+'<div class="exi-title" onclick="exiOpenOriginal(\'' + it.id + '\')" style="cursor:pointer" title="눌러서 원본 파일 열기">' + exiEsc_(title) + ' <span style="font-size:12px;color:#64748B;font-weight:600">📄</span></div>' +
 (sub ? '<div class="exi-sub">' + exiEsc_(sub) + '</div>' : '') +
 (it.memo ? '<div class="exi-sub" style="color:#B45309;">' + exiEsc_(it.memo) + '</div>' : '') +
 '<div class="exi-meta">' + exiEsc_(meta) + '</div>' +
@@ -13339,18 +13340,35 @@ for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
 return new File([arr], name, { type: mime || 'application/octet-stream' });
 }
 // [열기]: 원본 파일을 가져와서 종류에 맞는 화면에 그대로 넣기 (이미 있는 기능 재사용)
+// 원본 파일 열기 — 반드시 버튼을 누른 그 순간에 바로 열어야 휴대폰에서 막히지 않음
+function exiFillsForm_(it) {
+var ty = exiTypeOf_(it);
+if (ty === '입금문자') return true;
+if (/\.(dwg|dxf)$/i.test(it.name || '')) return false;
+return ['견적·명세', '납품송장', '맨홀주문서', '일반발주서', '사업자등록증', '명함', '펌프장주문서', '펌프장도면'].indexOf(ty) >= 0;
+}
+function exiOpenOriginal(id) {
+var it = (exiData.list || []).find(function(x) { return x.id === id; });
+if (!it || !it.fileId) { showToast('원본 파일 정보가 없어요'); return; }
+var url = 'https://drive.google.com/file/d/' + it.fileId + '/view';
+var w = window.open(url, '_blank');
+if (!w) location.href = url;
+}
 function openExtractItem(id) {
 var it = (exiData.list || []).find(function(x) { return x.id === id; });
 if (!it) return;
 var ty = exiTypeOf_(it);
 var isDwg = /\.(dwg|dxf)$/i.test(it.name || '');
 if (ty === '입금문자') { closeSection('extractInboxSection'); openBankMessageFromInbox_(it); return; }
-if (ty === '확인필요' || ty === '도면' || ty === '세금계산서' || ty === '분할납품통지서' || isDwg) { window.open('https://drive.google.com/file/d/' + it.fileId + '/view', '_blank'); if (ty !== '확인필요') setExtractStatus(id, '열람'); return; }
+// 읽어서 칸에 채우는 종류가 아니면 → 누르는 즉시 원본 파일을 열기 (서버를 기다렸다 열면 휴대폰이 '팝업 차단'으로 막음)
+var EXI_FILL_TYPES = ['견적·명세', '납품송장', '맨홀주문서', '일반발주서', '사업자등록증', '명함', '펌프장주문서', '펌프장도면'];
+if (isDwg || EXI_FILL_TYPES.indexOf(ty) < 0) { exiOpenOriginal(id); if (ty !== '확인필요') setExtractStatus(id, '열람'); return; }
+if (ty === '펌프장주문서' || ty === '펌프장도면') { exiOpenOriginal(id); }
 document.getElementById('loadingOverlay').style.display = 'flex';
 google.script.run
 .withSuccessHandler(function(r) {
 document.getElementById('loadingOverlay').style.display = 'none';
-if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '파일을 가져오지 못했어요')); if (r && r.url) window.open(r.url, '_blank'); return; }
+if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '파일을 가져오지 못했어요') + ' — 📄 원본을 눌러 직접 열어 보세요'); return; }
 var file = exiB64ToFile_(r.base64, r.name, r.mime);
 var ev = { target: { files: [file], value: '' } };
 var low = String(r.name || '').toLowerCase();
@@ -13383,11 +13401,7 @@ openSection('contactBookSection');
 if (typeof resetContactForm === 'function') resetContactForm();
 handleContactCardUpload(ev);
 } else if (ty === '펌프장주문서' || ty === '펌프장도면') {
-window.open(r.url, '_blank');
 openExternalManholeAutoOrderApp(); switchPortalParserTab('pump');
-} else {
-// 세금계산서·분할납품통지서·도면 등: 원본 파일을 바로 열기
-window.open(r.url, '_blank');
 }
 setExtractStatus(id, '열람');
 showToast('📂 [' + ty + '] 화면에 불러왔어요. 확인 후 추출함에서 ✅ 완료를 눌러 주세요.');
