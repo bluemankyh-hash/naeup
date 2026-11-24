@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261123-1340';
+var APP_BUILD = '20261124-0947';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -1469,6 +1469,10 @@ input:not(.cell-input):focus,select:focus,textarea:focus{border-color:#1F5FD6 !i
 .v3-lh button{border:none;background:none;font:inherit;font-size:13px;color:#6B7079;cursor:pointer;padding:4px}
 .v3-row{min-height:60px;padding:10px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid #F0F1F3;cursor:pointer;background:#fff;width:100%;text-align:left;border-left:none;border-right:none;border-bottom:none;font:inherit;color:#1A1C20}
 .v3-row:active{background:#F4F5F7;transform:none}
+.v3-acts{flex:0 0 auto;display:flex;gap:6px;margin-left:auto}
+.v3-act{height:34px;min-width:48px;padding:0 10px;border:1px solid #D7DBE2;border-radius:8px;background:#fff;color:#333D4B;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.v3-act.main{border-color:#1F5FD6;color:#1F5FD6}
+.v3-act:active{background:#EEF3FF}
 .v3-tag{flex:none;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;color:#4A4F57;background:#F0F1F3}
 .v3-tag.red{color:#C0362B;background:#FDECEA}.v3-tag.blue{color:#1F5FD6;background:#EAF1FD}.v3-tag.green{color:#0F7A55;background:#E6F5EE}.v3-tag.orange{color:#B45309;background:#FEF3E2}
 .v3-rt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -4071,6 +4075,7 @@ function deleteTodo(rowIndex) {
     saveCachedTodosSnapshotV1(allTodos);
     renderTodos();
     renderCalendar();
+    try { v3RenderToday(); } catch (eV3) {}
 
     const tDate = targetTodo ? (targetTodo.date || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10);
     const tTask = targetTodo ? (targetTodo.task || '') : '';
@@ -5204,6 +5209,7 @@ updateDocStatus(id, '수금');
 function updateDocStatus(id, newStatus) {
 const targetDoc = (allDocRecords || []).find(r => String(r.id) === String(id));
 if (targetDoc) { targetDoc.flowStatus = newStatus; targetDoc.hidden = (newStatus === '완료'); }
+try { var hb = window.hubBriefingData; if (hb && Array.isArray(hb.staleQuotes) && newStatus !== '견적') { hb.staleQuotes = hb.staleQuotes.filter(function(q){ return String(q.id) !== String(id); }); } v3RenderToday(); } catch (eV3) {}
 updatePipelineSummaryCounts();
 renderDocCards();
 renderCalendar();
@@ -14540,6 +14546,7 @@ depObj.status = '입금완료';
 depObj.paidDate = new Date().toISOString().slice(0, 10);
 markDepositCompletedInLocal(depObj);
 renderDepositManagementView();
+try { v3RenderToday(); } catch (eV3) {}
 showToast('✅ [' + (depObj.company || '거래처') + '] 입금완료! (화면에서 숨김 · 구글 시트 [입금관리] 탭에 영구 보관)');
 
 var payload = {
@@ -15063,7 +15070,11 @@ function v3Date(){
   var t = new Date(), w = '일월화수목금토'.charAt(t.getDay());
   var el = document.getElementById('v3Date'); if (el) el.textContent = (t.getMonth() + 1) + '월 ' + t.getDate() + '일 ' + w + '요일';
 }
-function v3Row(tag, cls, title, sub, onclick){
+function v3Row(tag, cls, title, sub, onclick, acts){
+  if (acts && acts.length) {
+    return '<div role="button" tabindex="0" class="v3-row" onclick="' + onclick + '"><span class="v3-tag ' + cls + '">' + tag + '</span><span class="v3-rt"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</span><span class="v3-acts">' +
+      acts.map(function(a){ return '<button type="button" class="v3-act' + (a.main ? ' main' : '') + '" onclick="event.stopPropagation();' + a.js + '">' + a.label + '</button>'; }).join('') + '</span></div>';
+  }
   return '<button type="button" class="v3-row" onclick="' + onclick + '"><span class="v3-tag ' + cls + '">' + tag + '</span><span class="v3-rt"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</span><svg class="v3-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>';
 }
 function v3RenderToday(){
@@ -15536,16 +15547,22 @@ v3RenderToday = function(){
   arr('delivery').forEach(function(x){ gSc.push(v3Row('납품', 'green', v3Esc(x.title), v3Esc(x.when || '') + ' · ' + v3Won(x.amount), "v3Go('schedule')")); });
   /* 3. 단발업무 */
   var td = v3ActiveTodos();
-  var gTd = td.map(function(t){ var late = t.date && String(t.date) < today; return v3Row('할 일', late ? 'red' : '', v3Esc(t.task), late ? v3Esc(String(t.date).slice(5)) + '부터 밀림' : '', "v3Go('todo')"); });
-  /* 4. 견적 대기 */
-  var gQt = arr('staleQuotes').map(function(x){ return v3Row('견적', '', v3Esc(x.title), '견적 ' + v3Esc(x.date || '') + ' · ' + x.days + '일 지남', "filterFlowAndOpenModal('견적')"); });
-  /* 5. 미입금 (+ 계산서 미발행·발행 대기) */
-  var gMo = arr('unpaidOld').map(function(x){ return v3Row('입금', 'red', v3Esc(x.title), v3Esc(x.supplier || '') + ' · ' + x.days + '일 지남 · ' + v3Won(x.amount), "v3Go('deposit')"); });
+  var gTd = td.map(function(t){ var late = t.date && String(t.date) < today; var ri = v3Esc(String(t.rowIndex)); return v3Row('할 일', late ? 'red' : '', v3Esc(t.task), late ? v3Esc(String(t.date).slice(5)) + '부터 밀림' : '', "v3Go('todo')", [{ label: '진행', js: "openTodoProgress('" + ri + "')" }, { label: '완료', main: true, js: "deleteTodo('" + ri + "')" }]); });
+  /* 4. 견적 대기 — 대장에서 이미 완료·다음 단계로 넘긴 건은 바로 뺌 */
+  var docById = {}; (window.allDocRecords || []).forEach(function(r){ if (r && r.id) docById[String(r.id)] = r; });
+  var liveQ = arr('staleQuotes').filter(function(x){ var r = docById[String(x.id)]; return !r || (!r.hidden && String(r.flowStatus || '').trim() === '견적'); });
+  var gQt = liveQ.map(function(x){ var id = v3Esc(String(x.id)); return v3Row('견적', '', v3Esc(x.title), '견적 ' + v3Esc(x.date || '') + ' · ' + x.days + '일 지남', "filterFlowAndOpenModal('견적')", docById[String(x.id)] ? [{ label: '완료', main: true, js: "completeDoc('" + id + "')" }] : null); });
+  /* 5. 미입금 (+ 계산서 미발행·발행 대기) — 입금관리에서 찾은 건은 여기서 바로 입금완료 */
+  var deps = window.allDeposits || [];
+  var findDep = function(x){ return deps.filter(function(p){ return p && String(p.company || '') && String(x.title || '').indexOf(String(p.company)) === 0 && (Number(p.amount) || 0) === (Number(x.amount) || 0) && String(p.date || '') === String(x.date || ''); })[0]; };
+  var gMo = [];
+  arr('unpaidOld').forEach(function(x){ var p = findDep(x); if (p && /입금완료/.test(String(p.status || ''))) return; var i = p ? deps.indexOf(p) : -1; gMo.push(v3Row('입금', 'red', v3Esc(x.title), v3Esc(x.supplier || '') + ' · ' + x.days + '일 지남 · ' + v3Won(x.amount), "v3Go('deposit')", i >= 0 ? [{ label: '입금완료', main: true, js: 'v3PaidAt(' + i + ')' }] : null)); });
+  var unpaidLive = gMo.length;
   arr('noInvoice').forEach(function(x){ gMo.push(v3Row('계산서', 'orange', v3Esc(x.title) + ' 계산서 발행', v3Esc(x.date || '') + ' · ' + v3Won(x.amount), "openTaxInvoiceForDoc('" + v3Esc(x.id) + "')")); });
   arr('queuedInvoices').forEach(function(x){ gMo.push(v3Row('계산서', 'orange', v3Esc(x.title) + ' 발행 대기', v3Esc(x.supplier || '') + ' · PC에서 엑셀 만들기', "v3Go('doc_INVOICE')")); });
   var unpaidN = (d.unpaidAll && d.unpaidAll.count) || arr('unpaidOld').length;
   var set = function(id, v){ var el = document.getElementById(id); if (el) el.textContent = v; };
-  set('v3sEx', exN); set('v3sSched', gSc.length); set('v3sTodo', td.length); set('v3sQuote', gQt.length); set('v3sUnpaid', arr('unpaidOld').length);
+  set('v3sEx', exN); set('v3sSched', gSc.length); set('v3sTodo', td.length); set('v3sQuote', gQt.length); set('v3sUnpaid', unpaidLive);
   set('v3Count', (exN ? 1 : 0) + gSc.length + gTd.length + gQt.length + gMo.length + '건');
   var on = document.getElementById('v3BriefOn'); if (on) on.checked = !!d.enabled;
   var group = function(k, title, rows, empty, more, moreKey){
@@ -15562,6 +15579,10 @@ v3RenderToday = function(){
     group('quote', '견적 대기', gQt, '답을 기다리는 견적이 없어요.', '', '') +
     group('money', '미입금 · 계산서', gMo, '오래된 미입금이 없어요.', '입금관리', 'deposit');
 };
+function v3PaidAt(i){
+  var p = (window.allDeposits || [])[i]; if (!p) return;
+  showCustomConfirm('입금완료로 바꿀까요?\n' + (p.company || '') + ' · ' + v3Won(p.amount), function(){ completeDepositItem(p); try { v3RenderToday(); } catch (e) {} }, '입금완료', '#1F5FD6');
+}
 setTimeout(function(){ try { if ((window.currentWorkspaceApp || 'hub') === 'hub') v3RenderToday(); } catch (e) {} }, 0);
 </script>
 
