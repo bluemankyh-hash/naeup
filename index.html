@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261125-0748';
+var APP_BUILD = '20261125-1513';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -4115,6 +4115,31 @@ function deleteTodo(rowIndex) {
     );
   };
 }
+// 동명이인 보호: 검색으로 고른 사람과 '소속'이 다르게 저장하면 → 다른 사람으로 보고, 고른 사람의 전화·메일은 넘기지 않음
+function genLogOrgKey_(x) { return String(x || '').replace(/\(\s*주\s*\)|㈜|주식회사|\s/g, ''); }
+function genLogGuardSameName_(id, org, phone, email) {
+var out = { id: id, phone: phone, email: email };
+if (!id) return out;
+var c = (allContacts || []).find(function(k) { return String(k.id) === String(id); });
+if (!c) return out;
+var a = genLogOrgKey_(c.org), b = genLogOrgKey_(org);
+if (a && b && a !== '-' && a.indexOf(b) < 0 && b.indexOf(a) < 0) {
+  out.id = '';
+  if (phone && String(phone).replace(/\D/g, '') === String(c.phone || '').replace(/\D/g, '')) out.phone = '';
+  if (email && String(email).toLowerCase() === String(c.email || '').toLowerCase()) out.email = '';
+  setTimeout(function() { showToast('👥 ' + (c.name || '') + ' 동명이인 — ' + (c.org || '') + ' 담당자는 그대로 두고 ' + org + ' 담당자로 따로 저장했어요'); }, 1200);
+}
+return out;
+}
+// 일지의 담당자 찾기: 이름 + 소속(저장돼 있으면)으로
+function fieldLogContact_(x) {
+var same = (window.allContacts || []).filter(function(k) { return k && k.name === x.name; });
+if (same.length <= 1) return same[0];
+var o = genLogOrgKey_(x.org);
+if (o) { var hit = same.find(function(k) { var a = genLogOrgKey_(k.org); return a && (a.indexOf(o) >= 0 || o.indexOf(a) >= 0); }); if (hit) return hit; }
+var rg = String(x.region || '');
+return same.find(function(k) { return rg && k.region === rg; }) || same[0];
+}
 function saveGenLog() {
 const memo = document.getElementById('genLogMemo').value.trim();
 const r = document.getElementById('genNewRegion').value.trim() || "기타";
@@ -4129,14 +4154,16 @@ const today = new Date().toISOString().split('T')[0];
 // 담당자 (앱 내부 9칸): [지자체, 소속기관, 담당자, 역할/직책, (빈칸), 최근미팅일, 특이사항, 휴대번호, 메일]
 // 동일 인물이면 서버에서 새로 추가하지 않고 최근미팅일만 오늘로 갱신
 const newC = [r, org, name, role, '', today, '', phone, email];
-const selContactId = (document.getElementById('genLogContact') || {}).value || '';
+let selContactId = (document.getElementById('genLogContact') || {}).value || '';
+const g6 = genLogGuardSameName_(selContactId, org, phone, email);
+selContactId = g6.id; newC[7] = g6.phone; newC[8] = g6.email;
 document.getElementById('loadingOverlay').style.display = 'flex';
 google.script.run.withSuccessHandler(() => {
 closeSection('generalLogSection');
 document.getElementById('genLogMemo').value = '';
 fetchInitialData();
 showToast("✅ 외근업무 저장 및 주소록 동기화 완료");
-}).handleAction({ action: "saveLog", logData: [today, r, "", name, memo], newContactData: newC, contactId: selContactId });
+}).handleAction({ action: "saveLog", logData: [today, r, "", name, memo, org], newContactData: newC, contactId: selContactId });
 }
 function renderContacts(list) {
 const c = document.getElementById('contactListContainer');
@@ -13645,8 +13672,8 @@ var d = new Date(day + 'T00:00:00');
 html += '<div class="flog-day">' + esc(day.replace(/-/g, '.')) + (isNaN(d) ? '' : ' (' + dow[d.getDay()] + ')') + '</div>';
 lastDay = day;
 }
-var c = (allContacts || []).find(function(k) { return k && k.name === x.name; });
-var who = esc(x.name || '담당자 미기입') + (c ? ' <small>' + esc([c.org && c.org !== '-' ? c.org : '', c.role].filter(Boolean).join(' · ')) + '</small>' : '');
+var c = fieldLogContact_(x);
+var who = esc(x.name || '담당자 미기입') + (c || x.org ? ' <small>' + esc([x.org || (c && c.org && c.org !== '-' ? c.org : ''), c && c.role].filter(Boolean).join(' · ')) + '</small>' : '');
 var preview = String(x.memo || '').replace(/\s+/g, ' ').slice(0, 26);
 html += '<div class="flog-item" onclick="this.classList.toggle(\'open\')">' +
 '<div class="flog-head"><div style="min-width:0;"><div class="flog-name">' + who + '</div>' +
@@ -16063,9 +16090,9 @@ function v3LogEdit(row){
   var x = v3LogFind(row); if (!x) return;
   v3EditingLog = x;
   showGenLogForm_(true);
-  var c = (window.allContacts || []).find(function(k){ return k && k.name === x.name; }) || {};
+  var c = fieldLogContact_(x) || {};
   var set = function(id, v){ var el = document.getElementById(id); if (el) el.value = v || ''; };
-  set('genNewRegion', x.region || c.region); set('genNewOrg', c.org); set('genNewName', x.name); set('genNewRole', c.role); set('genNewPhone', c.phone); set('genNewEmail', c.email);
+  set('genNewRegion', x.region || c.region); set('genNewOrg', x.org || c.org); set('genNewName', x.name); set('genNewRole', c.role); set('genNewPhone', c.phone); set('genNewEmail', c.email);
   set('genLogMemo', x.memo); set('genLogContactSearch', '');
   var sel = document.getElementById('genLogContact');
   if (sel && c.id) { if (!Array.prototype.some.call(sel.options, function(o){ return String(o.value) === String(c.id); })) { var o = document.createElement('option'); o.value = c.id; sel.appendChild(o); } sel.value = c.id; } else if (sel) sel.value = '';
@@ -16105,12 +16132,14 @@ function v3LogDelete(row){
     if (!name) { showToast('⚠️ 담당자 성명을 입력하세요.'); return; }
     if (!memo) { showToast('⚠️ 내용을 입력하세요.'); return; }
     var newC = [r, g('genNewOrg'), name, g('genNewRole'), '', '', '', g('genNewPhone'), g('genNewEmail')];
+    var gd = genLogGuardSameName_((document.getElementById('genLogContact') || {}).value || '', g('genNewOrg'), g('genNewPhone'), g('genNewEmail'));
+    newC[7] = gd.phone; newC[8] = gd.email;
     document.getElementById('loadingOverlay').style.display = 'flex';
     google.script.run.withSuccessHandler(function(res){
       v3LogAfter(res, '✅ 외근일지를 고쳤어요');
       if (res && res.success) { try { fetchInitialData(); } catch (e) {} }
     }).withFailureHandler(function(e){ document.getElementById('loadingOverlay').style.display = 'none'; showToast('❌ ' + (e.message || e)); })
-      .handleAction({ action: 'updateLog', row: x.row, orig: { date: x.date, name: x.name, memo: x.memo }, logData: [x.date, r, x.project || '', name, memo], newContactData: newC, contactId: (document.getElementById('genLogContact') || {}).value || '' });
+      .handleAction({ action: 'updateLog', row: x.row, orig: { date: x.date, name: x.name, memo: x.memo }, logData: [x.date, r, x.project || '', name, memo, g('genNewOrg')], newContactData: newC, contactId: gd.id });
   };
 })();
 </script>
