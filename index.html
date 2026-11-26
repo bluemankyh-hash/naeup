@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261126-1844';
+var APP_BUILD = '20261126-1846';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -15704,7 +15704,7 @@ v3RenderMenu = function(){
   html += '<button type="button" class="v3-mi' + (oo ? ' open' : '') + '" onclick="v3OrderOpen=!v3OrderOpen; v3RenderMenu();"><span>발주관리</span>' + car + '</button>';
   if (oo) html += it('order_manhole', '맨홀발주', '', false, 'sub') + it('order_po', '일반발주', '', false, 'sub') + it('order_extract', '파일추출', '', false, 'sub') + it('order_pump', '펌프장맨홀', '', false, 'sub');
   html += '<button type="button" class="v3-mi' + (dd ? ' open' : '') + '" onclick="v3DocOpen=!v3DocOpen; v3RenderMenu();"><span>문서관리</span>' + car + '</button>';
-  if (dd) html += it('doc_EST', '견적서', '', false, 'sub') + it('doc_PO', '발주서', '', false, 'sub') + it('doc_TAX', '거래명세서', '', false, 'sub') + it('doc_INVOICE', '세금계산서', noInv ? '미발행 ' + noInv : '', !!noInv, 'sub') + it('doc_GJ', '경조사', '', false, 'sub') + it('doc_INV', '거래송장', '', false, 'sub');
+  if (dd) html += it('doc_EST', '견적서', '', false, 'sub') + it('doc_PO', '발주서', '', false, 'sub') + it('doc_TAX', '거래명세서', '', false, 'sub') + it('doc_INVOICE', '세금계산서', noInv ? '미발행 ' + noInv : '', !!noInv, 'sub') + it('doc_INV', '거래송장', '', false, 'sub') + it('doc_GJ', '경조사', '', false, 'sub');
   html += it('delivery', '납품현황');
   html += '<div class="v3-gt">돈 · 연락</div>' + it('deposit', '입금관리', unpaid ? '미입금 ' + unpaid : '', !!unpaid) + it('mail', '메일관리');
   document.getElementById('v3MenuList').innerHTML = html;
@@ -16021,7 +16021,7 @@ v3RenderMenu = function(){
   html += '<button type="button" class="v3-mi' + (oo ? ' open' : '') + '" onclick="v3OrderOpen=!v3OrderOpen; v3RenderMenu();"><span>발주관리</span>' + car + '</button>';
   if (oo) html += it('order_manhole', '맨홀발주', '', false, 'sub') + it('order_po', '일반발주', '', false, 'sub') + it('order_extract', '파일추출', '', false, 'sub') + it('order_pump', '펌프맨홀', '', false, 'sub');
   html += '<button type="button" class="v3-mi' + (dd ? ' open' : '') + '" onclick="v3DocOpen=!v3DocOpen; v3RenderMenu();"><span>문서관리</span>' + car + '</button>';
-  if (dd) html += it('doc_EST', '견적서', '', false, 'sub') + it('doc_PO', '발주서', '', false, 'sub') + it('doc_TAX', '거래명세서', '', false, 'sub') + it('doc_INVOICE', '세금계산서', noInv ? '미발행 ' + noInv : '', !!noInv, 'sub') + it('doc_GJ', '경조사', '', false, 'sub') + it('doc_INV', '거래송장', '', false, 'sub');
+  if (dd) html += it('doc_EST', '견적서', '', false, 'sub') + it('doc_PO', '발주서', '', false, 'sub') + it('doc_TAX', '거래명세서', '', false, 'sub') + it('doc_INVOICE', '세금계산서', noInv ? '미발행 ' + noInv : '', !!noInv, 'sub') + it('doc_INV', '거래송장', '', false, 'sub') + it('doc_GJ', '경조사', '', false, 'sub');
   html += it('delivery', '납품현황');
   html += '<div class="v3-gt">돈 · 연락</div>' + it('deposit', '입금관리', unpaid ? '미입금 ' + unpaid : '', !!unpaid) + it('mail', '메일관리');
   document.getElementById('v3MenuList').innerHTML = html;
