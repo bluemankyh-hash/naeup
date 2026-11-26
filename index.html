@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261126-1736';
+var APP_BUILD = '20261126-1809';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -8691,7 +8691,7 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 <textarea id="gjTel" class="gj-in" rows="2"></textarea>
 <label class="gj-l">기타 메모 (문서에 들어감)</label><textarea id="gjNote" class="gj-in" rows="2"></textarea>
 <label class="gj-l" style="color:#B91C1C">확인필요 <small>한 줄에 하나 · 문서에 빨간 글씨로 표시돼요</small></label><textarea id="gjNeed" class="gj-in" rows="2"></textarea>
-<label class="gj-chkline"><input type="checkbox" id="gjPhotosOn" checked onchange="try{google.script.run.gj_setPhotos(this.checked)}catch(e){}"> 올린 캡처 사진을 2쪽에 증빙으로 붙이기</label>
+<label class="gj-chkline"><input type="checkbox" id="gjPhotosOn" onchange="try{google.script.run.gj_setPhotos(this.checked)}catch(e){}"> 올린 캡처 사진을 2쪽에 증빙으로 붙이기 <small style="font-weight:500;color:#8B95A1">(켜면 2장이 돼요 · 기본은 1장)</small></label>
 <div class="gj-row"><button type="button" class="gj-btn gj-main" id="gjSaveBtn" onclick="gjSave()">💾 저장 (PDF 만들기)</button></div>
 <div id="gjDone" class="gj-done" style="display:none"></div>
 </div>
