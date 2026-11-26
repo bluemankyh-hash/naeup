@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261126-1835';
+var APP_BUILD = '20261126-1844';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -8714,11 +8714,12 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 </div>
 <div class="rc-canvas"><canvas id="rcCanvas" width="700" height="500"></canvas></div>
 <div class="rc-tip">파란 네모의 흰 점을 끌어 크기를 맞추고, 안쪽을 끌면 이동해요.</div>
-<div class="gj-row"><button type="button" class="gj-btn gj-main" onclick="rc_addToA4Sheet('half')">➕ A4에 넣기 (1장에 2개)</button><button type="button" class="gj-btn gj-sub" onclick="rc_addToA4Sheet('full')">➕ A4 1장에 크게</button></div>
+<div class="gj-row"><button type="button" class="gj-btn gj-main" onclick="rc_addToA4Sheet('auto')">➕ A4에 넣기 (비율 그대로)</button><button type="button" class="gj-btn gj-sub" onclick="rc_addToA4Sheet('half')">➕ ½ 장 크기로</button></div>
 </div>
 <div class="gj-card">
 <div class="gj-h">🖨 A4 미리보기 <small id="rcBadge">현재 0장 배치됨</small></div>
-<div class="rc-a4wrap"><div class="rc-sheet" id="rcSheet"><div class="slot-empty-msg" id="rcEmpty">위에서 사진을 돌리고 자른 뒤<br><b>[➕ A4에 넣기]</b>를 누르면 여기에 들어가요.</div></div></div>
+<div class="rc-a4wrap"><div class="rc-sheet" id="rcSheet"></div></div>
+<div class="rc-tip">사진은 늘어나지 않고 비율 그대로 들어가요. 칸 위 [📐] 버튼으로 원래 크기 → ½ 장 → ⅓ 장 → 한 장 가득을 바꿀 수 있어요.</div>
 <div class="gj-row"><button type="button" class="gj-btn gj-sub" onclick="rc_clearA4Sheet()">🗑️ 비우기</button><button type="button" class="gj-btn gj-main" onclick="rc_printInvoiceDoc()">🖨️ 이대로 A4 인쇄</button></div>
 </div>
 </div>
@@ -17229,10 +17230,13 @@ textarea.gj-in{line-height:1.5;resize:vertical}
 .rc-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.rc-tools button{height:38px;padding:0 10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-weight:800;font-size:13px;cursor:pointer}.rc-tools button.hl,.rc-tools button.highlight{background:#eff6ff;border-color:#3b82f6;color:#1d4ed8}
 .rc-canvas{background:#1e293b;border-radius:10px;display:flex;justify-content:center;align-items:center;padding:8px;overflow:hidden}#rcCanvas{max-width:100%;height:auto;touch-action:none;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .rc-tip{font-size:12px;color:#8B95A1;margin-top:6px}
-.rc-a4wrap{background:#dcdfe4;border-radius:10px;padding:10px;overflow:auto}.rc-sheet{width:210mm;min-height:297mm;padding:8mm 10mm;background:#fff;display:flex;flex-direction:column;gap:5mm;box-sizing:border-box;transform-origin:top left}
-.invoice-slot{width:100%;border:1px dashed #cbd5e1;border-radius:4px;position:relative;overflow:hidden}.invoice-slot.size-half{height:136mm}.invoice-slot.size-full{height:275mm}.invoice-slot img{width:100%;height:100%;display:block}.invoice-slot img.fit-fill{object-fit:fill}.invoice-slot img.fit-contain{object-fit:contain}
-.slot-controls{position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:2}.slot-btn{background:rgba(30,41,59,.82);color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:12px;font-weight:700;cursor:pointer}.slot-btn.del{background:rgba(220,38,38,.88)}.slot-empty-msg{color:#94a3b8;font-size:14px;text-align:center;padding:60px 20px}
-@media (max-width:820px){.rc-a4wrap{height:calc(297mm * 0.42 + 20px)}.rc-sheet{transform:scale(.42)}}
+.rc-a4wrap{background:#dcdfe4;border-radius:10px;padding:10px;overflow:hidden;position:relative}.rc-sheet{width:210mm;transform-origin:top left}
+.rc-page{width:210mm;height:297mm;padding:8mm 10mm;background:#fff;display:flex;flex-direction:column;align-items:center;gap:5mm;box-sizing:border-box;margin-bottom:6mm;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.rc-row{display:flex;gap:5mm;align-items:flex-start;justify-content:center;flex:0 0 auto}
+.rc-pno{position:absolute;bottom:3mm;right:5mm;font-size:11px;color:#94a3b8}
+.invoice-slot{border:1px dashed #cbd5e1;position:relative;overflow:visible;flex:0 0 auto}.invoice-slot img{width:100%;height:100%;display:block;object-fit:contain}
+.slot-controls{position:absolute;top:4px;right:4px;left:4px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;z-index:2}.slot-btn{background:rgba(30,41,59,.85);color:#fff;border:none;border-radius:.4em;padding:.45em .6em;font-size:var(--rcb,14px);font-weight:800;cursor:pointer;white-space:nowrap;line-height:1.1}.slot-btn.del{background:rgba(220,38,38,.88)}.slot-empty-msg{color:#94a3b8;font-size:14px;text-align:center;padding:60px 20px}
+
 .gj-set{margin-top:12px;font-size:12px;color:#8B95A1}.gj-set a{color:#1F5FD6;font-weight:700}.gj-link{border:none;background:none;color:#1F5FD6;font-weight:800;font-size:12px;cursor:pointer;text-decoration:underline}
 </style>
 <script>
@@ -17250,7 +17254,7 @@ function gjOpen(){
   try { v3SyncTitle(); } catch (e) {}
 }
 /* 사진: 휴대폰 사진이 커서 긴 변 1600px JPEG로 줄여서 보냄 */
-function gjTab(t){ [].forEach.call(document.querySelectorAll('#gyeongjoSection .gj-tab'), function(b){ b.classList.toggle('on', b.getAttribute('data-t') === t); }); document.getElementById('gjTabGj').style.display = t === 'gj' ? '' : 'none'; document.getElementById('gjTabRc').style.display = t === 'rc' ? '' : 'none'; }
+function gjTab(t){ [].forEach.call(document.querySelectorAll('#gyeongjoSection .gj-tab'), function(b){ b.classList.toggle('on', b.getAttribute('data-t') === t); }); document.getElementById('gjTabGj').style.display = t === 'gj' ? '' : 'none'; document.getElementById('gjTabRc').style.display = t === 'rc' ? '' : 'none'; if (t === 'rc') setTimeout(function(){ try { rc_renderA4Sheet(); } catch (e) {} }, 30); }
 function gjTabIs(t){ try { return v3Vis('gyeongjoSection') && document.getElementById(t === 'rc' ? 'gjTabRc' : 'gjTabGj').style.display !== 'none'; } catch (e) { return false; } }
 var gjPdfText = '', gjPdfNames = [];
 /* PDF: 글자는 꺼내서 AI·규칙에 함께 주고, 쪽은 그림(최대 4쪽)으로 바꿔 사진처럼 다룸 */
@@ -18533,14 +18537,40 @@ function rc_addToA4Sheet(sizeMode) {
   }
 
   var dataUrl = sourceCanvas.toDataURL('image/jpeg', 0.94);
-  a4Items.push({ dataUrl: dataUrl, size: sizeMode, fit: 'fill' });
+  a4Items.push({ dataUrl: dataUrl, size: sizeMode || 'auto', w: sourceCanvas.width, h: sourceCanvas.height });
   renderA4Sheet();
+  showToast('➕ A4에 넣었어요 (비율 그대로)');
 }
 
-function rc_toggleSlotFit(idx) {
-  a4Items[idx].fit = (a4Items[idx].fit === 'fill') ? 'contain' : 'fill';
-  renderA4Sheet();
+/* A4(인쇄 영역 190×281mm)에 사진 비율 그대로 위에서부터 차곡차곡 — 넘치면 다음 장 */
+var RC_W = 190, RC_H = 281, RC_GAP = 5;
+var RC_BOX = { auto: RC_H, half: 136, third: 90, full: RC_H };
+var RC_LABEL = { auto: '원래 크기', half: '½ 장', third: '⅓ 장', full: '한 장 가득' };
+var RC_NEXT = { auto: 'half', half: 'third', third: 'full', full: 'auto' };
+function rcItemSize(it) {
+  var boxH = RC_BOX[it.size] || RC_H, ratio = (it.h || 1) / (it.w || 1);
+  var w = RC_W, h = w * ratio;
+  if (h > boxH) { h = boxH; w = h / ratio; }
+  return { w: Math.round(w * 10) / 10, h: Math.round(h * 10) / 10 };
 }
+/* 선반 쌓기: 좁은 사진은 옆으로 나란히, 줄이 차면 아래로, 장이 차면 다음 장 */
+function rcPages() {
+  var pages = [], pg = null, row = null;
+  function newPage() { pg = { rows: [], used: 0 }; pages.push(pg); row = null; }
+  newPage();
+  a4Items.forEach(function(it, i) {
+    var sz = rcItemSize(it);
+    if (row && row.w + RC_GAP + sz.w <= RC_W + 0.1 && pg.used - row.h + Math.max(row.h, sz.h) <= RC_H) {
+      pg.used += Math.max(0, sz.h - row.h); row.h = Math.max(row.h, sz.h); row.w += RC_GAP + sz.w; row.items.push({ it: it, i: i, sz: sz }); return;
+    }
+    var need = sz.h + (pg.rows.length ? RC_GAP : 0);
+    if (pg.used + need > RC_H && pg.rows.length) { newPage(); need = sz.h; }
+    row = { w: sz.w, h: sz.h, items: [{ it: it, i: i, sz: sz }] }; pg.rows.push(row); pg.used += need;
+  });
+  return pages;
+}
+function rc_toggleSlotFit(idx) { var it = a4Items[idx]; if (!it) return; it.size = RC_NEXT[it.size] || 'auto'; renderA4Sheet(); }
+function rc_moveA4Item(idx, d) { var j = idx + d; if (j < 0 || j >= a4Items.length) return; var t = a4Items[idx]; a4Items[idx] = a4Items[j]; a4Items[j] = t; renderA4Sheet(); }
 
 function rc_removeA4Item(idx) {
   a4Items.splice(idx, 1);
@@ -18553,54 +18583,46 @@ function rc_clearA4Sheet() {
 }
 
 function renderA4Sheet() {
-  var sheet = document.getElementById('rcSheet');
-  var printArea = document.getElementById('rcPrintArea') || document.createElement('div');
+  var wrap = document.getElementById('rcSheet');
   var badge = document.getElementById('rcBadge');
-
-  badge.textContent = '현재 ' + a4Items.length + '장 배치됨';
-  sheet.innerHTML = '';
-  printArea.innerHTML = '';
-
-  if (a4Items.length === 0) {
-    sheet.innerHTML =
-      '<div class="slot-empty-msg" id="rcEmpty">' +
-      '왼쪽에서 계산서 사진을 회전·자르기 한 뒤<br><br>' +
-      '<b>[➕ 오른쪽 A4 종이에 넣기]</b> 버튼을 누르면<br>' +
-      '여기에 실제 세금계산서 크기로 빈 공간 없이 꽉 차게 들어갑니다.<br><br>' +
-      '(A4 한 장에 위·아래로 2장까지 모아 인쇄할 수 있습니다!)' +
-      '</div>';
-    return;
+  if (!a4Items.length) {
+    badge.textContent = '아직 없음';
+    wrap.innerHTML = '<div class="rc-page"><div class="slot-empty-msg">위에서 사진을 돌리고 자른 뒤<br><b>[➕ A4에 넣기]</b>를 누르면 비율 그대로 여기에 들어가요.<br>여러 장을 넣으면 위에서부터 차곡차곡 채우고, 넘치면 다음 장으로 가요.</div></div>';
+    rcFitPreview(); return;
   }
-
-  for (var idx = 0; idx < a4Items.length; idx++) {
-    var item = a4Items[idx];
-    var fitClass = item.fit === 'fill' ? 'fit-fill' : 'fit-contain';
-    var fitLabel = item.fit === 'fill' ? '↔ 원본비율 보기' : '⬛ 칸에 꽉 채우기';
-
-    var slot = document.createElement('div');
-    slot.className = 'invoice-slot size-' + item.size;
-    slot.innerHTML =
-      '<div class="slot-controls">' +
-        '<button class="slot-btn" onclick="rc_toggleSlotFit(' + idx + ')">' + fitLabel + '</button>' +
-        '<button class="slot-btn del" onclick="rc_removeA4Item(' + idx + ')">✕ 삭제</button>' +
-      '</div>' +
-      '<img class="' + fitClass + '" src="' + item.dataUrl + '" alt="계산서 ' + (idx + 1) + '">';
-    sheet.appendChild(slot);
-
-    var pSlot = document.createElement('div');
-    pSlot.className = 'print-invoice-item size-' + item.size;
-    pSlot.innerHTML = '<img class="' + fitClass + '" src="' + item.dataUrl + '" alt="계산서 ' + (idx + 1) + '">';
-    printArea.appendChild(pSlot);
-  }
+  var pages = rcPages();
+  badge.textContent = '사진 ' + a4Items.length + '장 · A4 ' + pages.length + '장';
+  wrap.innerHTML = pages.map(function(pg, pi) {
+    return '<div class="rc-page"><div class="rc-pno">' + (pi + 1) + ' / ' + pages.length + '</div>' + pg.rows.map(function(row) { return '<div class="rc-row">' + row.items.map(function(x) {
+      return '<div class="invoice-slot" style="width:' + x.sz.w + 'mm;height:' + x.sz.h + 'mm">' +
+        '<div class="slot-controls"><button type="button" class="slot-btn" onclick="rc_toggleSlotFit(' + x.i + ')">📐 ' + RC_LABEL[x.it.size] + '</button>' +
+        '<button type="button" class="slot-btn" onclick="rc_moveA4Item(' + x.i + ',-1)">▲</button><button type="button" class="slot-btn" onclick="rc_moveA4Item(' + x.i + ',1)">▼</button>' +
+        '<button type="button" class="slot-btn del" onclick="rc_removeA4Item(' + x.i + ')">✕</button></div>' +
+        '<img src="' + x.it.dataUrl + '" alt="영수증 ' + (x.i + 1) + '"></div>';
+    }).join('') + '</div>'; }).join('') + '</div>';
+  }).join('');
+  rcFitPreview();
 }
+/* 미리보기를 화면 폭에 맞춰 줄여 보여 줌 (실제 인쇄 크기는 그대로) */
+function rcFitPreview() {
+  var outer = document.querySelector('#gyeongjoSection .rc-a4wrap'), inner = document.getElementById('rcSheet');
+  if (!outer || !inner) return;
+  inner.style.transform = ''; inner.style.width = '';
+  var pw = 210 * 96 / 25.4, avail = outer.clientWidth - 20;
+  var sc = avail > 0 ? Math.min(1, avail / pw) : 1;
+  inner.style.transform = 'scale(' + sc + ')'; inner.style.setProperty('--rcb', Math.min(24, Math.round(11 / sc)) + 'px');
+  outer.style.height = (inner.scrollHeight * sc + 20) + 'px';
+}
+window.addEventListener('resize', function() { try { if (gjTabIs('rc')) rcFitPreview(); } catch (e) {} });
 
 function rc_printInvoiceDoc() {
-  if (a4Items.length === 0 && workingCanvas.width) rc_addToA4Sheet('half');
-  if (a4Items.length === 0) { showToast('인쇄할 계산서 사진을 먼저 넣어주세요!'); return; }
+  if (a4Items.length === 0 && workingCanvas.width) rc_addToA4Sheet('auto');
+  if (a4Items.length === 0) { showToast('인쇄할 사진을 먼저 넣어주세요!'); return; }
   var w = window.open('', '_blank');
   if (!w) { showToast('팝업이 막혔어요. 브라우저에서 팝업을 허용해 주세요.'); return; }
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>계산서·영수증 인쇄</title><style>@page{size:A4 portrait;margin:8mm 10mm}body{margin:0}.it{width:100%;overflow:hidden;page-break-inside:avoid;margin-bottom:5mm}.half{height:136mm}.full{height:275mm}.it img{width:100%;height:100%;display:block}.fill{object-fit:fill}.contain{object-fit:contain}</style></head><body>' +
-    a4Items.map(function(it) { return '<div class="it ' + it.size + '"><img class="' + (it.fit === 'fill' ? 'fill' : 'contain') + '" src="' + it.dataUrl + '"></div>'; }).join('') +
+  var pages = rcPages();
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>계산서·영수증 인쇄</title><style>@page{size:A4 portrait;margin:8mm 10mm}html,body{margin:0;padding:0}.pg{width:190mm;height:281mm;display:flex;flex-direction:column;align-items:center;gap:' + RC_GAP + 'mm;page-break-after:always;overflow:hidden}.pg:last-child{page-break-after:auto}.row{display:flex;gap:' + RC_GAP + 'mm;align-items:flex-start;justify-content:center}.it img{width:100%;height:100%;display:block;object-fit:contain}</style></head><body>' +
+    pages.map(function(pg) { return '<div class="pg">' + pg.rows.map(function(row) { return '<div class="row">' + row.items.map(function(x) { return '<div class="it" style="width:' + x.sz.w + 'mm;height:' + x.sz.h + 'mm"><img src="' + x.it.dataUrl + '"></div>'; }).join('') + '</div>'; }).join('') + '</div>'; }).join('') +
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>';
   w.document.open(); w.document.write(html); w.document.close();
 }
@@ -18609,6 +18631,8 @@ function rc_printInvoiceDoc() {
   ctx.fillText('위 [사진 열기]를 누르거나', canvas.width / 2, canvas.height / 2 - 14); ctx.fillText('PC에서는 카톡 사진 복사 후 Ctrl+V', canvas.width / 2, canvas.height / 2 + 16); })();
 
 window.rc_rotateImage = rc_rotateImage;
+window.rc_renderA4Sheet = renderA4Sheet;
+window.rc_moveA4Item = rc_moveA4Item;
 window.rc_rotateFree = rc_rotateFree;
 window.rc_cropSelectedArea = rc_cropSelectedArea;
 window.rc_undoImage = rc_undoImage;
