@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261126-1848';
+var APP_BUILD = '20261126-1854';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -8720,7 +8720,7 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 <div class="gj-h">🖨 A4 미리보기 <small id="rcBadge">현재 0장 배치됨</small></div>
 <div class="rc-a4wrap"><div class="rc-sheet" id="rcSheet"></div></div>
 <div class="rc-tip">사진은 늘어나지 않고 비율 그대로 들어가요. 칸 위 [📐] 버튼으로 원래 크기 → ½ 장 → ⅓ 장 → 한 장 가득을 바꿀 수 있어요.</div>
-<label class="gj-l">메모 (파일 이름에 들어가요 · 선택)</label><input type="text" id="rcMemo" class="gj-in" placeholder="예) 밀양상공회의소 특별회비">
+<label class="gj-l">제목 (파일 이름에 들어가요 · 비워 두면 AI가 사진을 보고 지어요)</label><input type="text" id="rcMemo" class="gj-in" placeholder="예) 밀양상공회의소 특별회비 500,000원">
 <div class="gj-row"><button type="button" class="gj-btn gj-sub" onclick="rc_clearA4Sheet()">🗑️ 비우기</button><button type="button" class="gj-btn" id="rcSaveBtn" onclick="rcSave()">💾 PDF로 저장</button><button type="button" class="gj-btn gj-main" onclick="rc_printInvoiceDoc()">🖨️ 이대로 A4 인쇄</button></div>
 <div id="rcDone" class="gj-done" style="display:none"></div>
 </div>
@@ -17282,7 +17282,8 @@ async function rcSave(){
       btn.disabled = false; btn.textContent = '💾 PDF로 저장';
       if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '저장하지 못했어요')); return; }
       var d = document.getElementById('rcDone'); d.style.display = 'block';
-      d.innerHTML = '✅ 저장했어요 · ' + gjEsc(r.name) + '<div class="gj-row"><button type="button" class="gj-btn" onclick="gjOpenPdf(\'' + r.fileId + '\')">📄 PDF 열기</button></div>';
+      d.innerHTML = '✅ 저장했어요 · ' + gjEsc(r.name) + (r.aiTitle ? '<br><span style="font-weight:600">메모가 비어 있어서 AI가 제목을 「' + gjEsc(r.memo) + '」로 지었어요. 틀렸으면 [제목 고치기]를 눌러 주세요.</span>' : '') +
+        '<div class="gj-row"><button type="button" class="gj-btn" onclick="gjOpenPdf(\'' + r.fileId + '\')">📄 PDF 열기</button><button type="button" class="gj-btn" onclick="rcRename(\'' + r.fileId + '\', ' + gjEsc(JSON.stringify(r.memo || '')).replace(/'/g, '&#39;') + ')">✏️ 제목 고치기</button><button type="button" class="gj-btn" style="color:#B91C1C;border-color:#FCA5A5" onclick="rcDelete(\'' + r.fileId + '\')">🗑 삭제</button></div>';
       showToast('✅ 영수증 PDF를 저장했어요'); rcLoadList();
     }).withFailureHandler(function(e){ btn.disabled = false; btn.textContent = '💾 PDF로 저장'; showToast('❌ ' + (e.message || e)); }).gj_saveReceipts({ memo: gjV('rcMemo'), pages: out });
   } catch (e) { btn.disabled = false; btn.textContent = '💾 PDF로 저장'; showToast('❌ ' + (e.message || e)); }
@@ -17294,13 +17295,19 @@ function rcLoadList(){
     document.getElementById('rcListCount').textContent = list.length ? '전체 ' + list.length + '건' : '';
     box.innerHTML = list.length ? list.map(function(x){
       return '<div class="gj-item"><span class="gj-tag">영수증</span><div class="gj-t"><b>' + gjEsc(x.memo || '(메모 없음)') + '</b><small>저장 ' + gjEsc(String(x.date || '').slice(5)) + ' · 사진 ' + gjEsc(x.count) + '장 · A4 ' + gjEsc(x.pages) + '장</small></div>' +
-        '<div class="gj-a"><button type="button" onclick="gjOpenPdf(\'' + gjEsc(x.fileId) + '\')">PDF</button><button type="button" style="color:#B91C1C" onclick="rcDelete(\'' + gjEsc(x.fileId) + '\')">삭제</button></div></div>';
+        '<div class="gj-a"><button type="button" onclick="gjOpenPdf(\'' + gjEsc(x.fileId) + '\')">PDF</button><button type="button" onclick="rcRename(\'' + gjEsc(x.fileId) + '\', ' + gjEsc(JSON.stringify(x.memo || '')).replace(/'/g, '&#39;') + ')">수정</button><button type="button" style="color:#B91C1C" onclick="rcDelete(\'' + gjEsc(x.fileId) + '\')">삭제</button></div></div>';
     }).join('') : '<div class="gj-empty">아직 저장한 영수증 PDF가 없어요.</div>';
   }).withFailureHandler(function(e){ var box = document.getElementById('rcList'); if (box) box.innerHTML = '<div class="gj-empty">목록을 불러오지 못했어요: ' + gjEsc(e.message || e) + '</div>'; }).gj_listReceipts();
 }
+function rcRename(fileId, cur){
+  var t = prompt('영수증 제목(메모)을 적어 주세요.\n예) 밀양상공회의소 특별회비 500,000원', cur || '');
+  if (t === null) return;
+  google.script.run.withSuccessHandler(function(r){ if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '고치지 못했어요')); return; } showToast('✏️ 제목을 고쳤어요 · ' + r.name); var d = document.getElementById('rcDone'); if (d) d.style.display = 'none'; rcLoadList(); })
+    .withFailureHandler(function(e){ showToast('❌ ' + (e.message || e)); }).gj_renameReceipt(fileId, t.trim());
+}
 function rcDelete(fileId){
   showCustomConfirm('이 영수증 PDF를 삭제할까요?\n(드라이브 휴지통으로 가요)', function(){
-    google.script.run.withSuccessHandler(function(r){ if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '삭제하지 못했어요')); return; } showToast('🗑 삭제했어요'); rcLoadList(); })
+    google.script.run.withSuccessHandler(function(r){ if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '삭제하지 못했어요')); return; } showToast('🗑 삭제했어요'); var d = document.getElementById('rcDone'); if (d) d.style.display = 'none'; rcLoadList(); })
       .withFailureHandler(function(e){ showToast('❌ ' + (e.message || e)); }).gj_deleteReceipt(fileId);
   }, '삭제', '#DC2626');
 }
