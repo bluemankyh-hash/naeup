@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261125-1513';
+var APP_BUILD = '20261126-1722';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -334,7 +334,7 @@ button[onclick^="closeSection"]:active {
 background: #e2e8f0 !important;
 }
 /* 담당자관리, 외근업무, 수동등록, 사업수정 창을 전체화면 독립 모달로 완전 고정 (휴대폰 화면 흔들림 원천 차단) */
-#contactBookSection, #generalLogSection, #manualAddSection, #updateSection, #detailEditSection, #taxInvoiceSection, #manholeOrderSection, #extractInboxSection, #deliverySection {
+#contactBookSection, #generalLogSection, #manualAddSection, #updateSection, #detailEditSection, #taxInvoiceSection, #manholeOrderSection, #extractInboxSection, #deliverySection, #gyeongjoSection {
 position: fixed !important;
 top: 0 !important;
 left: 0 !important;
@@ -1508,7 +1508,7 @@ input:not(.cell-input):focus,select:focus,textarea:focus{border-color:#1F5FD6 !i
 .v3-mi.open .v3-car{transform:rotate(90deg)}
 /* 헤더는 항상 맨 위, 모든 화면은 머리줄 아래 「페이지」로 */
 .header.v3{position:sticky;top:0;z-index:100010 !important}
-#contactBookSection,#generalLogSection,#manualAddSection,#updateSection,#detailEditSection,#taxInvoiceSection,#manholeOrderSection,#extractInboxSection,#deliverySection{top:56px !important;height:calc(100% - 56px) !important;height:calc(100dvh - 56px) !important;z-index:99990 !important;background:#F4F5F7 !important;padding:12px 12px 40px !important}
+#contactBookSection,#generalLogSection,#manualAddSection,#updateSection,#detailEditSection,#taxInvoiceSection,#manholeOrderSection,#extractInboxSection,#deliverySection,#gyeongjoSection{top:56px !important;height:calc(100% - 56px) !important;height:calc(100dvh - 56px) !important;z-index:99990 !important;background:#F4F5F7 !important;padding:12px 12px 40px !important}
 #contactBookSection>.section-title:first-child,#generalLogSection>.section-title:first-child,#extractInboxSection>.section-title:first-child,#deliverySection>.section-title:first-child,#docWriterSection>.section-title:first-child{display:none !important}
 body.v3-overdoc #contactBookSection>.section-title:first-child,body.v3-overdoc #generalLogSection>.section-title:first-child,body.v3-overdoc #extractInboxSection>.section-title:first-child{display:flex !important}
 #bizModal,#docHistoryModal{top:56px !important;z-index:99990 !important;background:#F4F5F7 !important;backdrop-filter:none !important;align-items:stretch !important;justify-content:stretch !important;padding:0 !important;overflow-y:auto !important}
@@ -1545,7 +1545,7 @@ body:not(.v3-tab-manhole) #manholeOrderSection>div>.section-title:first-child{di
 :root{--v3h:calc(56px + env(safe-area-inset-top, 0px))}
 .header.v3{position:fixed !important;left:0;right:0;top:0 !important;height:var(--v3h) !important;padding-top:env(safe-area-inset-top, 0px) !important;box-sizing:border-box}
 body{padding-top:var(--v3h) !important}
-#contactBookSection,#generalLogSection,#manualAddSection,#updateSection,#detailEditSection,#taxInvoiceSection,#manholeOrderSection,#extractInboxSection,#deliverySection{top:var(--v3h) !important;height:calc(100dvh - var(--v3h)) !important}
+#contactBookSection,#generalLogSection,#manualAddSection,#updateSection,#detailEditSection,#taxInvoiceSection,#manholeOrderSection,#extractInboxSection,#deliverySection,#gyeongjoSection{top:var(--v3h) !important;height:calc(100dvh - var(--v3h)) !important}
 #bizModal,#docHistoryModal{top:var(--v3h) !important}
 #v3Drawer .v3-nav{padding-top:env(safe-area-inset-top, 0px)}
 body.v3-paged #mainContainer,body.v3-paged:not(.v3-overdoc) #docWriterSection{visibility:hidden !important}
@@ -1586,7 +1586,7 @@ body.v3-paged #mainContainer,body.v3-paged:not(.v3-overdoc) #docWriterSection{vi
 #bizPartnerTableBody .btn-todo-del{color:#C0362B !important}
 #bizModal table thead{display:none}
 /* ---- 모든 관리 화면: 오늘 할 일과 같은 모양 ---- */
-#contactBookSection,#generalLogSection,#manualAddSection,#updateSection,#taxInvoiceSection,#manholeOrderSection,#extractInboxSection,#deliverySection{padding-bottom:calc(140px + env(safe-area-inset-bottom, 0px)) !important}
+#contactBookSection,#generalLogSection,#manualAddSection,#updateSection,#taxInvoiceSection,#manholeOrderSection,#extractInboxSection,#deliverySection,#gyeongjoSection{padding-bottom:calc(140px + env(safe-area-inset-bottom, 0px)) !important}
 #bizModal>.custom-modal-content,#docHistoryModal>.custom-modal-content{padding-bottom:calc(160px + env(safe-area-inset-bottom, 0px)) !important}
 .container{padding-bottom:calc(80px + env(safe-area-inset-bottom, 0px)) !important}
 :is(#generalLogSection,#depositSection,#mailSection,#projectSection,#deliverySection,#extractInboxSection,#docHistoryModal,#dashboardSection,#bizModal,#contactBookSection,#manualAddSection,#updateSection) button[style]:not(.v3-pill):not(.save-btn):not(.btn-add):not([id^="v3"]){background:#fff !important;color:#1A1C20 !important;border:1px solid #D5D8DD !important;border-radius:18px !important;box-shadow:none !important;font-weight:700 !important;background-image:none !important}
@@ -2904,7 +2904,7 @@ var allDeposits = [];
 var currentDepositSupplierFilter = 'ALL';
 var currentProjectRegionFilter = '전체';
 var taxBatchQueue = [];
-var subSections = ['manualAddSection', 'updateSection', 'generalLogSection', 'contactBookSection', 'taxInvoiceSection', 'extractInboxSection', 'deliverySection'];
+var subSections = ['manualAddSection', 'updateSection', 'generalLogSection', 'contactBookSection', 'taxInvoiceSection', 'extractInboxSection', 'deliverySection', 'gyeongjoSection'];
 var defaultCompanyProfiles = {
 others: {
 key: "others",
@@ -8634,6 +8634,72 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 </div>
 
 <!-- ==================== [신규 독립 모듈: 전자세금계산서 자동 발행 (홈택스 일괄발행 .xls & 사업자 자동추출 로그인 브릿지)] ==================== -->
+<!-- ==================== [§36] 경조사 (문서관리 > 경조사) ==================== -->
+<div class="card" id="gyeongjoSection" style="display:none;">
+<div class="gj-wrap">
+<div class="gj-card">
+<div class="gj-h">💐 경조사 소식 넣기 <small>링크·문구·캡처 중 하나만 넣어도 돼요</small></div>
+<label class="gj-l">① 링크 (모바일 청첩장·부고)</label>
+<input type="url" id="gjUrl" class="gj-in" placeholder="https://..." autocomplete="off">
+<label class="gj-l">② 문구 붙여넣기 (링크 없는 부고 문자 등)</label>
+<textarea id="gjText" class="gj-in" rows="4" placeholder="카톡·문자 내용을 그대로 붙여 넣으세요"></textarea>
+<label class="gj-l">③ 캡처 사진 (여러 장 가능)</label>
+<div class="gj-photos" id="gjPhotoList"></div>
+<label class="gj-btn gj-sub" style="display:inline-flex">📷 사진 올리기<input type="file" id="gjPhotoInput" accept="image/*" multiple style="display:none" onchange="gjAddPhotos(this.files); this.value='';"></label>
+<label class="gj-l">메모</label>
+<input type="text" id="gjMemo" class="gj-in" placeholder="예) 신영호 이사님의 아들 결혼소식입니다">
+<div id="gjNotice" class="gj-notice" style="display:none"></div>
+<div class="gj-row"><button type="button" class="gj-btn gj-main" id="gjExtractBtn" onclick="gjExtract()">🔍 추출</button><button type="button" class="gj-btn gj-sub" onclick="gjFillForm({}); gjShowForm(true);">✏️ 직접 입력</button></div>
+</div>
+
+<div class="gj-card" id="gjFormCard" style="display:none">
+<div class="gj-h">✅ 내용 확인·수정 <small>틀린 곳을 고친 뒤 저장하세요</small></div>
+<div id="gjCheck" class="gj-chk" style="display:none"></div>
+<div class="gj-2"><div><label class="gj-l">종류</label><select id="gjKind" class="gj-in" onchange="gjKindView()"><option>결혼</option><option>부고</option><option>개업</option><option>취임</option><option>기타</option></select></div>
+<div><label class="gj-l">행사일 (정렬용)</label><input type="date" id="gjSortDate" class="gj-in"></div></div>
+<label class="gj-l">일시 (문서에 들어갈 글)</label><input type="text" id="gjWhen" class="gj-in" placeholder="2026년 12월 5일(토) 오후 12시 20분">
+<div class="gj-k gj-k-결혼 gj-k-개업 gj-k-취임 gj-k-기타"><label class="gj-l">인사말 (원문 그대로)</label><textarea id="gjGreet" class="gj-in" rows="5"></textarea></div>
+<div class="gj-k gj-k-결혼">
+<div class="gj-2"><div><label class="gj-l">신랑</label><input id="gjW_신랑" class="gj-in"></div><div><label class="gj-l">신부</label><input id="gjW_신부" class="gj-in"></div></div>
+<div class="gj-2"><div><label class="gj-l">신랑 아버지</label><input id="gjW_신랑아버지" class="gj-in"></div><div><label class="gj-l">신랑 어머니</label><input id="gjW_신랑어머니" class="gj-in"></div></div>
+<div class="gj-2"><div><label class="gj-l">신랑 관계 (장남 등)</label><input id="gjW_신랑관계" class="gj-in"></div><div><label class="gj-l">신부 관계 (장녀 등)</label><input id="gjW_신부관계" class="gj-in"></div></div>
+<div class="gj-2"><div><label class="gj-l">신부 아버지</label><input id="gjW_신부아버지" class="gj-in"></div><div><label class="gj-l">신부 어머니</label><input id="gjW_신부어머니" class="gj-in"></div></div>
+</div>
+<div class="gj-k gj-k-부고">
+<div class="gj-2"><div><label class="gj-l">고인</label><input id="gjB_고인" class="gj-in"></div><div><label class="gj-l">향년</label><input id="gjB_향년" class="gj-in"></div></div>
+<label class="gj-l">별세 문구 (원문 그대로)</label><textarea id="gjB_별세문구" class="gj-in" rows="4"></textarea>
+<div class="gj-2"><div><label class="gj-l">빈소</label><input id="gjB_빈소이름" class="gj-in"></div><div><label class="gj-l">호실</label><input id="gjB_빈소호실" class="gj-in"></div></div>
+<label class="gj-l">빈소 주소</label><input id="gjB_빈소주소" class="gj-in">
+<div class="gj-2"><div><label class="gj-l">발인</label><input id="gjB_발인" class="gj-in"></div><div><label class="gj-l">장지</label><input id="gjB_장지" class="gj-in"></div></div>
+<label class="gj-l">상주 <small>한 줄에 한 명 · 관계 | 이름</small></label><textarea id="gjB_상주" class="gj-in" rows="3" placeholder="장남 | 홍길동"></textarea>
+</div>
+<div class="gj-k gj-k-개업 gj-k-취임">
+<div class="gj-2"><div><label class="gj-l">상호·단체</label><input id="gjG_상호단체" class="gj-in"></div><div><label class="gj-l">직책</label><input id="gjG_직책" class="gj-in"></div></div>
+<div class="gj-2"><div><label class="gj-l">이름</label><input id="gjG_이름" class="gj-in"></div><div><label class="gj-l">행사 일시</label><input id="gjG_행사일시" class="gj-in"></div></div>
+<label class="gj-l">행사 장소</label><input id="gjG_행사장소" class="gj-in">
+</div>
+<div class="gj-k gj-k-결혼 gj-k-개업 gj-k-취임 gj-k-기타">
+<div class="gj-2"><div><label class="gj-l">장소 이름</label><input id="gjP_이름" class="gj-in"></div><div><label class="gj-l">홀</label><input id="gjP_홀" class="gj-in"></div></div>
+<label class="gj-l">주소</label><input id="gjP_주소" class="gj-in">
+</div>
+<label class="gj-l">계좌 <small>한 줄에 하나 · 구분 | 관계 | 은행 | 계좌번호 | 예금주</small></label>
+<textarea id="gjAcc" class="gj-in" rows="4" placeholder="신랑측 | 신랑 | 국민 | 123-45-6789 | 신수민"></textarea>
+<label class="gj-l">연락처 <small>관계 | 이름 | 전화</small></label>
+<textarea id="gjTel" class="gj-in" rows="2"></textarea>
+<label class="gj-l">기타 메모 (문서에 들어감)</label><textarea id="gjNote" class="gj-in" rows="2"></textarea>
+<label class="gj-l" style="color:#B91C1C">확인필요 <small>한 줄에 하나 · 문서에 빨간 글씨로 표시돼요</small></label><textarea id="gjNeed" class="gj-in" rows="2"></textarea>
+<label class="gj-chkline"><input type="checkbox" id="gjPhotosOn" checked onchange="try{google.script.run.gj_setPhotos(this.checked)}catch(e){}"> 올린 캡처 사진을 2쪽에 증빙으로 붙이기</label>
+<div class="gj-row"><button type="button" class="gj-btn gj-main" id="gjSaveBtn" onclick="gjSave()">💾 저장 (PDF 만들기)</button></div>
+<div id="gjDone" class="gj-done" style="display:none"></div>
+</div>
+
+<div class="gj-card">
+<div class="gj-h">📚 경조사 목록 <small id="gjListCount"></small></div>
+<div id="gjList"><div class="gj-empty">불러오는 중…</div></div>
+<div class="gj-set">저장 폴더: <a id="gjFolderLink" href="#" target="_blank" rel="noopener">확인 중…</a> <button type="button" class="gj-link" onclick="gjChangeFolder()">폴더 바꾸기</button></div>
+</div>
+</div>
+</div>
 <div class="card" id="taxInvoiceSection" style="display:none;">
 <div class="section-title" style="color:#134E3B; font-size:16px;">
 <span>🧾 세금계산서 발행</span>
@@ -15611,7 +15677,7 @@ v3RenderMenu = function(){
   html += '<button type="button" class="v3-mi' + (oo ? ' open' : '') + '" onclick="v3OrderOpen=!v3OrderOpen; v3RenderMenu();"><span>발주관리</span>' + car + '</button>';
   if (oo) html += it('order_manhole', '맨홀발주', '', false, 'sub') + it('order_po', '일반발주', '', false, 'sub') + it('order_extract', '파일추출', '', false, 'sub') + it('order_pump', '펌프장맨홀', '', false, 'sub');
   html += '<button type="button" class="v3-mi' + (dd ? ' open' : '') + '" onclick="v3DocOpen=!v3DocOpen; v3RenderMenu();"><span>문서관리</span>' + car + '</button>';
-  if (dd) html += it('doc_EST', '견적서', '', false, 'sub') + it('doc_PO', '발주서', '', false, 'sub') + it('doc_TAX', '거래명세서', '', false, 'sub') + it('doc_INVOICE', '세금계산서', noInv ? '미발행 ' + noInv : '', !!noInv, 'sub') + it('doc_INV', '거래송장', '', false, 'sub');
+  if (dd) html += it('doc_EST', '견적서', '', false, 'sub') + it('doc_PO', '발주서', '', false, 'sub') + it('doc_TAX', '거래명세서', '', false, 'sub') + it('doc_INVOICE', '세금계산서', noInv ? '미발행 ' + noInv : '', !!noInv, 'sub') + it('doc_GJ', '경조사', '', false, 'sub') + it('doc_INV', '거래송장', '', false, 'sub');
   html += it('delivery', '납품현황');
   html += '<div class="v3-gt">돈 · 연락</div>' + it('deposit', '입금관리', unpaid ? '미입금 ' + unpaid : '', !!unpaid) + it('mail', '메일관리');
   document.getElementById('v3MenuList').innerHTML = html;
@@ -15772,7 +15838,7 @@ v3RenderToday = function(){
   arr('delivery').forEach(function(x){ gSc.push(v3Row('납품', 'green', v3Esc(x.title), v3Esc(x.when || '') + ' · ' + v3Won(x.amount), "v3Go('schedule')")); });
   /* 3. 단발업무 */
   var td = v3ActiveTodos();
-  var gTd = td.map(function(t){ var late = t.date && String(t.date) < today; var ri = v3Esc(String(t.rowIndex)); return v3Row('할 일', late ? 'red' : '', v3Esc(t.task), late ? v3Esc(String(t.date).slice(5)) + '부터 밀림' : '', "v3Go('todo')", [{ label: '진행', js: "openTodoProgress('" + ri + "')" }, { label: '완료', main: true, js: "deleteTodo('" + ri + "')" }]); });
+  var gTd = td.map(function(t){ var late = t.date && String(t.date) < today; var ri = v3Esc(String(t.rowIndex)); var gjf = (typeof gjTodoFileId === 'function') ? gjTodoFileId(t) : ''; if (gjf) { gjf = v3Esc(gjf); return v3Row('인쇄', 'red', v3Esc(t.task), 'PDF 저장됨 · 인쇄하고 [인쇄 완료]', "gjPrint('" + gjf + "')", [{ label: '🖨 인쇄', js: "gjPrint('" + gjf + "')" }, { label: '인쇄 완료', main: true, js: "gjMarkPrinted('" + gjf + "')" }]); } return v3Row('할 일', late ? 'red' : '', v3Esc(t.task), late ? v3Esc(String(t.date).slice(5)) + '부터 밀림' : '', "v3Go('todo')", [{ label: '진행', js: "openTodoProgress('" + ri + "')" }, { label: '완료', main: true, js: "deleteTodo('" + ri + "')" }]); });
   /* 4. 견적 대기 — 대장에서 이미 완료·다음 단계로 넘긴 건은 바로 뺌 */
   var docById = {}; (window.allDocRecords || []).forEach(function(r){ if (r && r.id) docById[String(r.id)] = r; });
   var liveQ = arr('staleQuotes').filter(function(x){ var r = docById[String(x.id)]; return !r || (!r.hidden && String(r.flowStatus || '').trim() === '견적'); });
@@ -15928,7 +15994,7 @@ v3RenderMenu = function(){
   html += '<button type="button" class="v3-mi' + (oo ? ' open' : '') + '" onclick="v3OrderOpen=!v3OrderOpen; v3RenderMenu();"><span>발주관리</span>' + car + '</button>';
   if (oo) html += it('order_manhole', '맨홀발주', '', false, 'sub') + it('order_po', '일반발주', '', false, 'sub') + it('order_extract', '파일추출', '', false, 'sub') + it('order_pump', '펌프맨홀', '', false, 'sub');
   html += '<button type="button" class="v3-mi' + (dd ? ' open' : '') + '" onclick="v3DocOpen=!v3DocOpen; v3RenderMenu();"><span>문서관리</span>' + car + '</button>';
-  if (dd) html += it('doc_EST', '견적서', '', false, 'sub') + it('doc_PO', '발주서', '', false, 'sub') + it('doc_TAX', '거래명세서', '', false, 'sub') + it('doc_INVOICE', '세금계산서', noInv ? '미발행 ' + noInv : '', !!noInv, 'sub') + it('doc_INV', '거래송장', '', false, 'sub');
+  if (dd) html += it('doc_EST', '견적서', '', false, 'sub') + it('doc_PO', '발주서', '', false, 'sub') + it('doc_TAX', '거래명세서', '', false, 'sub') + it('doc_INVOICE', '세금계산서', noInv ? '미발행 ' + noInv : '', !!noInv, 'sub') + it('doc_GJ', '경조사', '', false, 'sub') + it('doc_INV', '거래송장', '', false, 'sub');
   html += it('delivery', '납품현황');
   html += '<div class="v3-gt">돈 · 연락</div>' + it('deposit', '입금관리', unpaid ? '미입금 ' + unpaid : '', !!unpaid) + it('mail', '메일관리');
   document.getElementById('v3MenuList').innerHTML = html;
@@ -17101,6 +17167,189 @@ function v3ChooseDocType(cb){
   window.__vaHandle = handle; window.__vaParseWhen = parseWhen;   // 점검용
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
 })();
+</script>
+
+<style>
+#gyeongjoSection .gj-wrap{max-width:720px;margin:0 auto}
+.gj-card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.gj-h{font-size:17px;font-weight:900;color:#191F28;margin-bottom:8px}.gj-h small{display:block;font-size:12px;font-weight:500;color:#8B95A1;margin-top:2px}
+.gj-l{display:block;font-size:13px;font-weight:800;color:#4E5968;margin:12px 0 5px}.gj-l small{font-weight:500;color:#8B95A1}
+.gj-in{width:100%;box-sizing:border-box;border:1px solid #D1D6DB;border-radius:10px;padding:10px 12px;font-size:16px !important;font-family:inherit;background:#fff;color:#191F28}
+textarea.gj-in{line-height:1.5;resize:vertical}
+.gj-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gj-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.gj-btn{flex:1;min-height:48px;border-radius:12px;font-size:15px;font-weight:900;cursor:pointer;align-items:center;justify-content:center;padding:0 14px;border:1px solid #D1D6DB;background:#fff;color:#333D4B}
+.gj-main{background:#1F5FD6;border-color:#1F5FD6;color:#fff}.gj-sub{flex:0 0 auto}
+.gj-photos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.gj-ph{position:relative;width:74px;height:74px;border-radius:8px;overflow:hidden;border:1px solid #E5E8EB}.gj-ph img{width:100%;height:100%;object-fit:cover}
+.gj-ph button{position:absolute;top:2px;right:2px;width:24px;height:24px;border-radius:12px;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:13px;cursor:pointer}
+.gj-notice{margin-top:12px;padding:12px;border-radius:10px;background:#FFF7E6;color:#8A4B00;font-size:14px;font-weight:700;line-height:1.5;white-space:pre-line}
+.gj-chk{padding:10px 12px;border-radius:10px;background:#FEF2F2;color:#B91C1C;font-size:13px;font-weight:700;line-height:1.5;margin-bottom:6px}
+.gj-chkline{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700;margin-top:14px}.gj-chkline input{width:20px;height:20px}
+.gj-done{margin-top:12px;padding:14px;border-radius:12px;background:#ECFDF3;color:#067647;font-weight:800;font-size:14px}
+.gj-done .gj-row{margin-top:10px}
+.gj-item{display:flex;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #F2F4F6}.gj-item:first-child{border-top:none}
+.gj-item .gj-t{flex:1;min-width:0}.gj-item b{display:block;font-size:15px;color:#191F28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gj-item small{display:block;font-size:12px;color:#8B95A1;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gj-tag{flex:0 0 auto;font-size:12px;font-weight:800;padding:3px 8px;border-radius:6px;background:#EEF3FF;color:#1F5FD6}.gj-tag.부고{background:#F2F4F6;color:#333D4B}
+.gj-item .gj-a{display:flex;gap:6px;flex:0 0 auto}.gj-item .gj-a button{height:36px;padding:0 10px;border-radius:8px;border:1px solid #D1D6DB;background:#fff;font-weight:800;font-size:13px;cursor:pointer}
+.gj-ok{color:#067647;font-size:12px;font-weight:800}
+.gj-empty{padding:16px 0;color:#8B95A1;font-size:14px;text-align:center}
+.gj-set{margin-top:12px;font-size:12px;color:#8B95A1}.gj-set a{color:#1F5FD6;font-weight:700}.gj-link{border:none;background:none;color:#1F5FD6;font-weight:800;font-size:12px;cursor:pointer;text-decoration:underline}
+</style>
+<script>
+/* ===== [§36] 경조사: 링크·문구·캡처 → 추출 → 확인·수정 → PDF 저장 → 인쇄 (금액·메일 없음) ===== */
+var gjPhotos = [], gjLast = null, gjListData = [];
+function gjEsc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function gjV(id){ var e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; }
+function gjSet(id, v){ var e = document.getElementById(id); if (e) e.value = v == null ? '' : v; }
+function gjOpen(){
+  if (window.currentWorkspaceApp === 'doc') try { switchWorkspaceApp('hub'); } catch (e) {}
+  openSection('gyeongjoSection');
+  gjLoadList();
+  try { google.script.run.withSuccessHandler(function(r){ if (!r || !r.success) return; var a = document.getElementById('gjFolderLink'); a.textContent = r.folderName; a.href = r.folderUrl; var c = document.getElementById('gjPhotosOn'); if (c) c.checked = r.photos; }).gj_getSettings(); } catch (e) {}
+  try { v3SyncTitle(); } catch (e) {}
+}
+/* 사진: 휴대폰 사진이 커서 긴 변 1600px JPEG로 줄여서 보냄 */
+function gjAddPhotos(files){
+  [].slice.call(files || []).slice(0, 6 - gjPhotos.length).forEach(function(f){
+    var rd = new FileReader();
+    rd.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var s = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        gjPhotos.push({ b64: c.toDataURL('image/jpeg', 0.85).split(',')[1], mime: 'image/jpeg' }); gjRenderPhotos();
+      };
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(f);
+  });
+}
+function gjRenderPhotos(){
+  document.getElementById('gjPhotoList').innerHTML = gjPhotos.map(function(p, i){ return '<div class="gj-ph"><img src="data:' + p.mime + ';base64,' + p.b64 + '"><button type="button" onclick="gjPhotos.splice(' + i + ',1); gjRenderPhotos();">✕</button></div>'; }).join('');
+}
+function gjNotice(msg){ var n = document.getElementById('gjNotice'); n.style.display = msg ? 'block' : 'none'; n.textContent = msg || ''; }
+function gjShowForm(on){ document.getElementById('gjFormCard').style.display = on ? 'block' : 'none'; document.getElementById('gjDone').style.display = 'none'; gjKindView(); if (on) setTimeout(function(){ document.getElementById('gjFormCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); }
+function gjKindView(){ var k = gjV('gjKind') || '결혼'; [].forEach.call(document.querySelectorAll('#gyeongjoSection .gj-k'), function(el){ el.style.display = el.classList.contains('gj-k-' + k) ? '' : 'none'; }); }
+function gjExtract(){
+  var p = { url: gjV('gjUrl'), text: gjV('gjText'), memo: gjV('gjMemo'), images: gjPhotos };
+  if (!p.url && !p.text && !p.images.length) { gjNotice('링크, 문구, 캡처 사진 중 하나는 넣어 주세요.'); return; }
+  var btn = document.getElementById('gjExtractBtn'); btn.disabled = true; btn.textContent = '⏳ 읽는 중… (10~30초)'; gjNotice('');
+  google.script.run.withSuccessHandler(function(r){
+    btn.disabled = false; btn.textContent = '🔍 추출';
+    if (!r || !r.success) {
+      gjNotice((r && r.error) || '추출하지 못했어요.' + ((r && r.dup) ? '\n※ 이 링크는 ' + r.dup.date + '에 이미 저장된 건이에요 (' + r.dup.title + ')' : ''));
+      if (r && r.needCapture) try { document.getElementById('gjPhotoInput').parentNode.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+      return;
+    }
+    gjLast = r.data;
+    var msgs = [];
+    if (r.dup) msgs.push('⚠ 이 링크는 ' + r.dup.date + '에 이미 저장된 건이에요 (' + r.dup.title + '). 그래도 저장하면 하나 더 만들어져요.');
+    if (r.linkThin && p.url) msgs.push('링크는 앱에서 내용을 읽을 수 없어서, 올린 사진·문구로 정리했어요. 원본 링크는 문서에 남겨요.');
+    gjNotice(msgs.join('\n'));
+    gjFillForm(r.data); gjShowForm(true);
+  }).withFailureHandler(function(e){ btn.disabled = false; btn.textContent = '🔍 추출'; gjNotice('❌ ' + (e.message || e)); }).gj_extract(p);
+}
+function gjLines(list, keys){ return (list || []).map(function(x){ return keys.map(function(k){ return String(x[k] || '').trim(); }).join(' | '); }).join('\n'); }
+function gjParse(text, keys){ return String(text || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean).map(function(l){ var c = l.split('|').map(function(s){ return s.trim(); }), o = {}; keys.forEach(function(k, i){ o[k] = c[i] || ''; }); return o; }); }
+var GJ_ACC_K = ['구분', '관계', '은행', '계좌번호', '예금주'], GJ_TEL_K = ['관계', '이름', '전화'], GJ_SJ_K = ['관계', '이름'];
+function gjFillForm(d){
+  d = d || {}; var w = d['결혼'] || {}, b = d['부고'] || {}, v = b['빈소'] || {}, g = d['개업취임'] || {}, pl = d['장소'] || {};
+  gjSet('gjKind', d['종류'] || '결혼'); gjSet('gjSortDate', d['정렬용날짜'] || ''); gjSet('gjWhen', d['일시'] || ''); gjSet('gjGreet', d['인사말'] || '');
+  ['신랑', '신부', '신랑아버지', '신랑어머니', '신랑관계', '신부아버지', '신부어머니', '신부관계'].forEach(function(k){ gjSet('gjW_' + k, w[k]); });
+  ['고인', '향년', '별세문구', '발인', '장지'].forEach(function(k){ gjSet('gjB_' + k, b[k]); });
+  gjSet('gjB_빈소이름', v['이름']); gjSet('gjB_빈소호실', v['호실']); gjSet('gjB_빈소주소', v['주소']); gjSet('gjB_상주', gjLines(b['상주'], GJ_SJ_K));
+  ['상호단체', '이름', '직책', '행사일시', '행사장소'].forEach(function(k){ gjSet('gjG_' + k, g[k]); });
+  gjSet('gjP_이름', pl['이름']); gjSet('gjP_홀', pl['홀']); gjSet('gjP_주소', pl['주소']);
+  gjSet('gjAcc', gjLines(d['계좌'], GJ_ACC_K)); gjSet('gjTel', gjLines(d['연락처'], GJ_TEL_K)); gjSet('gjNote', d['메모'] || ''); gjSet('gjNeed', (d['확인필요'] || []).join('\n'));
+  var ck = document.getElementById('gjCheck'), need = d['확인필요'] || [];
+  ck.style.display = need.length ? 'block' : 'none'; ck.innerHTML = need.length ? '확인필요: ' + need.map(gjEsc).join(' · ') : '';
+  gjKindView();
+}
+function gjCollect(){
+  var w = {}, b = {}, g = {};
+  ['신랑', '신부', '신랑아버지', '신랑어머니', '신랑관계', '신부아버지', '신부어머니', '신부관계'].forEach(function(k){ w[k] = gjV('gjW_' + k); });
+  ['고인', '향년', '별세문구', '발인', '장지'].forEach(function(k){ b[k] = gjV('gjB_' + k); });
+  b['빈소'] = { '이름': gjV('gjB_빈소이름'), '호실': gjV('gjB_빈소호실'), '주소': gjV('gjB_빈소주소') }; b['상주'] = gjParse(gjV('gjB_상주'), GJ_SJ_K);
+  ['상호단체', '이름', '직책', '행사일시', '행사장소'].forEach(function(k){ g[k] = gjV('gjG_' + k); });
+  return { '종류': gjV('gjKind'), '정렬용날짜': gjV('gjSortDate'), '일시': gjV('gjWhen'), '인사말': (document.getElementById('gjGreet') || {}).value || '',
+    '장소': { '이름': gjV('gjP_이름'), '홀': gjV('gjP_홀'), '주소': gjV('gjP_주소') }, '결혼': w, '부고': b, '개업취임': g,
+    '계좌': gjParse(gjV('gjAcc'), GJ_ACC_K), '연락처': gjParse(gjV('gjTel'), GJ_TEL_K), '메모': gjV('gjNote'), '확인필요': gjV('gjNeed').split('\n').map(function(s){ return s.trim(); }).filter(Boolean) };
+}
+function gjSave(force){
+  var d = gjCollect();
+  var btn = document.getElementById('gjSaveBtn'); btn.disabled = true; btn.textContent = '⏳ PDF 만드는 중…';
+  var photosOn = document.getElementById('gjPhotosOn').checked;
+  google.script.run.withSuccessHandler(function(r){
+    btn.disabled = false; btn.textContent = '💾 저장 (PDF 만들기)';
+    if (!r || !r.success) {
+      if (r && r.dup) { showCustomConfirm('이미 저장된 건이에요.\n' + r.dup.date + ' · ' + r.dup.title + '\n\n그래도 하나 더 저장할까요?', function(){ gjSave(true); }, '그래도 저장', '#1F5FD6'); return; }
+      showToast('❌ ' + ((r && r.error) || '저장하지 못했어요')); return;
+    }
+    var done = document.getElementById('gjDone'); done.style.display = 'block';
+    done.innerHTML = '✅ 저장했어요 · ' + gjEsc(r.name) + '<br><span style="font-weight:600">오늘 할 일(단발업무)에 「인쇄」를 올렸어요. 인쇄하고 [인쇄 완료]를 누르면 지워져요.</span>' +
+      '<div class="gj-row"><button type="button" class="gj-btn" onclick="gjOpenPdf(\'' + r.fileId + '\')">📄 PDF 열기</button><button type="button" class="gj-btn gj-main" onclick="gjPrint(\'' + r.fileId + '\')">🖨 인쇄</button></div>' +
+      '<div class="gj-row"><button type="button" class="gj-btn gj-sub" style="flex:1" onclick="gjReset()">＋ 새 경조사 넣기</button></div>';
+    done.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('✅ PDF로 저장했어요');
+    gjLoadList();
+    try { if (typeof fetchInitialData === 'function') fetchInitialData(); } catch (e) {}
+    try { hubBriefingLoading = false; loadHubBriefing(); } catch (e) {}
+  }).withFailureHandler(function(e){ btn.disabled = false; btn.textContent = '💾 저장 (PDF 만들기)'; showToast('❌ ' + (e.message || e)); })
+    .gj_save({ data: d, url: gjV('gjUrl'), memo: gjV('gjMemo'), images: photosOn ? gjPhotos : [], photos: photosOn, force: !!force });
+}
+function gjReset(){ ['gjUrl', 'gjText', 'gjMemo'].forEach(function(id){ gjSet(id, ''); }); gjPhotos = []; gjRenderPhotos(); gjNotice(''); gjShowForm(false); document.getElementById('gyeongjoSection').scrollTop = 0; }
+/* PDF는 누르는 즉시 새 창으로 (늦게 열면 휴대폰이 팝업 차단) */
+function gjOpenPdf(fileId){ var u = 'https://drive.google.com/file/d/' + fileId + '/view'; var w = window.open(u, '_blank'); if (!w) location.href = u; }
+function gjPrint(fileId){
+  gjOpenPdf(fileId);
+  setTimeout(function(){
+    showCustomConfirm('🖨 열린 PDF 창에서 인쇄해 주세요.\n(PC: 오른쪽 위 프린터 버튼 또는 Ctrl+P / 아이폰: 공유 › 프린트)\n\n인쇄를 마쳤나요?', function(){ gjMarkPrinted(fileId); }, '인쇄 완료', '#1F5FD6');
+  }, 400);
+}
+function gjMarkPrinted(fileId){
+  google.script.run.withSuccessHandler(function(r){
+    if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '처리하지 못했어요')); return; }
+    try { (window.allTodos || []).forEach(function(t){ if (t && String(t.task).replace(/\s+/g, '') === String(r.task || '').replace(/\s+/g, '')) t.status = '완료'; }); } catch (e) {}
+    try { if (typeof renderTodos === 'function') renderTodos(); } catch (e) {}
+    try { v3RenderToday(); } catch (e) {}
+    showToast('✅ 인쇄 완료로 표시하고 오늘 할 일에서 지웠어요');
+    if (v3Vis && v3Vis('gyeongjoSection')) gjLoadList();
+  }).withFailureHandler(function(e){ showToast('❌ ' + (e.message || e)); }).gj_markPrinted(fileId);
+}
+function gjLoadList(){
+  google.script.run.withSuccessHandler(function(r){
+    var box = document.getElementById('gjList'); if (!box) return;
+    gjListData = (r && r.list) || [];
+    var left = gjListData.filter(function(x){ return !x.printed; }).length;
+    document.getElementById('gjListCount').textContent = gjListData.length ? '전체 ' + gjListData.length + '건' + (left ? ' · 인쇄 안 한 것 ' + left + '건' : '') : '';
+    box.innerHTML = gjListData.length ? gjListData.map(function(x){
+      var ed = String(x.eventDate || ''); ed = ed ? ed.slice(5).replace('-', '/') : '';
+      return '<div class="gj-item"><span class="gj-tag ' + gjEsc(x.kind) + '">' + gjEsc(x.kind) + '</span><div class="gj-t"><b>' + gjEsc(x.target || '(대상 없음)') + '</b><small>' + gjEsc([ed ? '행사 ' + ed : '', x.place, '접수 ' + String(x.date || '').slice(5)].filter(Boolean).join(' · ')) + (x.printed ? ' · <span class="gj-ok">인쇄함</span>' : '') + (x.check ? ' · <span style="color:#B91C1C">확인필요</span>' : '') + '</small></div>' +
+        '<div class="gj-a"><button type="button" onclick="gjOpenPdf(\'' + gjEsc(x.fileId) + '\')">PDF</button><button type="button" onclick="gjPrint(\'' + gjEsc(x.fileId) + '\')">인쇄</button></div></div>';
+    }).join('') : '<div class="gj-empty">아직 저장한 경조사가 없어요.</div>';
+  }).withFailureHandler(function(e){ var box = document.getElementById('gjList'); if (box) box.innerHTML = '<div class="gj-empty">목록을 불러오지 못했어요: ' + gjEsc(e.message || e) + '</div>'; }).gj_list();
+}
+function gjChangeFolder(){
+  var link = prompt('경조사 PDF를 저장할 드라이브 폴더 주소를 붙여 넣으세요.\n(드라이브에서 폴더 열기 → 주소창 복사)');
+  if (!link) return;
+  google.script.run.withSuccessHandler(function(r){
+    if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '바꾸지 못했어요')); return; }
+    var a = document.getElementById('gjFolderLink'); a.textContent = r.folderName; a.href = r.folderUrl; showToast('📁 저장 폴더를 [' + r.folderName + ']로 바꿨어요');
+  }).gj_setFolder(link);
+}
+/* 메뉴: 문서관리 > 경조사 */
+(function(){
+  var oDocGo = window.v3DocGo;
+  v3DocGo = function(type){ if (type === 'GJ') { try { v3CloseMenu(); } catch (e) {} setTimeout(function(){ try { v3HideAll(); } catch (e) {} gjOpen(); }, 60); return; } return oDocGo.apply(this, arguments); };
+  var oCur = window.v3CurKey;
+  v3CurKey = function(){ if (v3Vis('gyeongjoSection')) return 'doc_GJ'; return oCur.apply(this, arguments); };
+  try { V3_PAGE_TITLES.push(['gyeongjoSection', '경조사']); } catch (e) {}
+})();
+/* 오늘업무의 '🖨 경조사 인쇄' 단발업무: [🖨 인쇄] [인쇄 완료] 버튼 */
+function gjTodoFileId(t){ var p = t && t.progress; if (!Array.isArray(p)) return ''; for (var i = 0; i < p.length; i++) if (p[i] && p[i].gj) return p[i].gj; return ''; }
 </script>
 
 </body>
