@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261126-1846';
+var APP_BUILD = '20261126-1848';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -8720,7 +8720,13 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 <div class="gj-h">🖨 A4 미리보기 <small id="rcBadge">현재 0장 배치됨</small></div>
 <div class="rc-a4wrap"><div class="rc-sheet" id="rcSheet"></div></div>
 <div class="rc-tip">사진은 늘어나지 않고 비율 그대로 들어가요. 칸 위 [📐] 버튼으로 원래 크기 → ½ 장 → ⅓ 장 → 한 장 가득을 바꿀 수 있어요.</div>
-<div class="gj-row"><button type="button" class="gj-btn gj-sub" onclick="rc_clearA4Sheet()">🗑️ 비우기</button><button type="button" class="gj-btn gj-main" onclick="rc_printInvoiceDoc()">🖨️ 이대로 A4 인쇄</button></div>
+<label class="gj-l">메모 (파일 이름에 들어가요 · 선택)</label><input type="text" id="rcMemo" class="gj-in" placeholder="예) 밀양상공회의소 특별회비">
+<div class="gj-row"><button type="button" class="gj-btn gj-sub" onclick="rc_clearA4Sheet()">🗑️ 비우기</button><button type="button" class="gj-btn" id="rcSaveBtn" onclick="rcSave()">💾 PDF로 저장</button><button type="button" class="gj-btn gj-main" onclick="rc_printInvoiceDoc()">🖨️ 이대로 A4 인쇄</button></div>
+<div id="rcDone" class="gj-done" style="display:none"></div>
+</div>
+<div class="gj-card">
+<div class="gj-h">📁 저장한 영수증 <small id="rcListCount"></small></div>
+<div id="rcList"><div class="gj-empty">불러오는 중…</div></div>
 </div>
 </div>
 </div>
@@ -17254,7 +17260,50 @@ function gjOpen(){
   try { v3SyncTitle(); } catch (e) {}
 }
 /* 사진: 휴대폰 사진이 커서 긴 변 1600px JPEG로 줄여서 보냄 */
-function gjTab(t){ [].forEach.call(document.querySelectorAll('#gyeongjoSection .gj-tab'), function(b){ b.classList.toggle('on', b.getAttribute('data-t') === t); }); document.getElementById('gjTabGj').style.display = t === 'gj' ? '' : 'none'; document.getElementById('gjTabRc').style.display = t === 'rc' ? '' : 'none'; if (t === 'rc') setTimeout(function(){ try { rc_renderA4Sheet(); } catch (e) {} }, 30); }
+function gjTab(t){ [].forEach.call(document.querySelectorAll('#gyeongjoSection .gj-tab'), function(b){ b.classList.toggle('on', b.getAttribute('data-t') === t); }); document.getElementById('gjTabGj').style.display = t === 'gj' ? '' : 'none'; document.getElementById('gjTabRc').style.display = t === 'rc' ? '' : 'none'; if (t === 'rc') setTimeout(function(){ try { rc_renderA4Sheet(); rcLoadList(); } catch (e) {} }, 30); }
+/* 영수증 A4 → PDF 저장 (사진은 긴 변 1800px로 줄여서 보냄) */
+function rcShrink(dataUrl){ return new Promise(function(res){ var im = new Image(); im.onload = function(){ var s = Math.min(1, 1800 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', 0.85).split(',')[1]); }; im.onerror = function(){ res(''); }; im.src = dataUrl; }); }
+async function rcSave(){
+  var pages = (typeof rc_pages === 'function') ? rc_pages() : [];
+  if (!pages.length || !pages[0].rows.length) { showToast('먼저 사진을 [➕ A4에 넣기] 해 주세요'); return; }
+  var btn = document.getElementById('rcSaveBtn'); btn.disabled = true; btn.textContent = '⏳ 저장 중…';
+  try {
+    var out = [];
+    for (var i = 0; i < pages.length; i++) {
+      var rows = [];
+      for (var j = 0; j < pages[i].rows.length; j++) {
+        var items = [];
+        for (var k = 0; k < pages[i].rows[j].items.length; k++) { var x = pages[i].rows[j].items[k]; items.push({ w: x.sz.w, h: x.sz.h, b64: await rcShrink(x.it.dataUrl) }); }
+        rows.push({ items: items });
+      }
+      out.push({ rows: rows });
+    }
+    google.script.run.withSuccessHandler(function(r){
+      btn.disabled = false; btn.textContent = '💾 PDF로 저장';
+      if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '저장하지 못했어요')); return; }
+      var d = document.getElementById('rcDone'); d.style.display = 'block';
+      d.innerHTML = '✅ 저장했어요 · ' + gjEsc(r.name) + '<div class="gj-row"><button type="button" class="gj-btn" onclick="gjOpenPdf(\'' + r.fileId + '\')">📄 PDF 열기</button></div>';
+      showToast('✅ 영수증 PDF를 저장했어요'); rcLoadList();
+    }).withFailureHandler(function(e){ btn.disabled = false; btn.textContent = '💾 PDF로 저장'; showToast('❌ ' + (e.message || e)); }).gj_saveReceipts({ memo: gjV('rcMemo'), pages: out });
+  } catch (e) { btn.disabled = false; btn.textContent = '💾 PDF로 저장'; showToast('❌ ' + (e.message || e)); }
+}
+function rcLoadList(){
+  google.script.run.withSuccessHandler(function(r){
+    var box = document.getElementById('rcList'); if (!box) return;
+    var list = (r && r.list) || [];
+    document.getElementById('rcListCount').textContent = list.length ? '전체 ' + list.length + '건' : '';
+    box.innerHTML = list.length ? list.map(function(x){
+      return '<div class="gj-item"><span class="gj-tag">영수증</span><div class="gj-t"><b>' + gjEsc(x.memo || '(메모 없음)') + '</b><small>저장 ' + gjEsc(String(x.date || '').slice(5)) + ' · 사진 ' + gjEsc(x.count) + '장 · A4 ' + gjEsc(x.pages) + '장</small></div>' +
+        '<div class="gj-a"><button type="button" onclick="gjOpenPdf(\'' + gjEsc(x.fileId) + '\')">PDF</button><button type="button" style="color:#B91C1C" onclick="rcDelete(\'' + gjEsc(x.fileId) + '\')">삭제</button></div></div>';
+    }).join('') : '<div class="gj-empty">아직 저장한 영수증 PDF가 없어요.</div>';
+  }).withFailureHandler(function(e){ var box = document.getElementById('rcList'); if (box) box.innerHTML = '<div class="gj-empty">목록을 불러오지 못했어요: ' + gjEsc(e.message || e) + '</div>'; }).gj_listReceipts();
+}
+function rcDelete(fileId){
+  showCustomConfirm('이 영수증 PDF를 삭제할까요?\n(드라이브 휴지통으로 가요)', function(){
+    google.script.run.withSuccessHandler(function(r){ if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '삭제하지 못했어요')); return; } showToast('🗑 삭제했어요'); rcLoadList(); })
+      .withFailureHandler(function(e){ showToast('❌ ' + (e.message || e)); }).gj_deleteReceipt(fileId);
+  }, '삭제', '#DC2626');
+}
 function gjTabIs(t){ try { return v3Vis('gyeongjoSection') && document.getElementById(t === 'rc' ? 'gjTabRc' : 'gjTabGj').style.display !== 'none'; } catch (e) { return false; } }
 var gjPdfText = '', gjPdfNames = [];
 /* PDF: 글자는 꺼내서 AI·규칙에 함께 주고, 쪽은 그림(최대 4쪽)으로 바꿔 사진처럼 다룸 */
@@ -18631,6 +18680,7 @@ function rc_printInvoiceDoc() {
   ctx.fillText('위 [사진 열기]를 누르거나', canvas.width / 2, canvas.height / 2 - 14); ctx.fillText('PC에서는 카톡 사진 복사 후 Ctrl+V', canvas.width / 2, canvas.height / 2 + 16); })();
 
 window.rc_rotateImage = rc_rotateImage;
+window.rc_pages = rcPages;
 window.rc_renderA4Sheet = renderA4Sheet;
 window.rc_moveA4Item = rc_moveA4Item;
 window.rc_rotateFree = rc_rotateFree;
