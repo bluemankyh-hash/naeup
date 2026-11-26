@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261126-1722';
+var APP_BUILD = '20261126-1736';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -8637,19 +8637,22 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 <!-- ==================== [§36] 경조사 (문서관리 > 경조사) ==================== -->
 <div class="card" id="gyeongjoSection" style="display:none;">
 <div class="gj-wrap">
+<div class="gj-tabs"><button type="button" class="gj-tab on" data-t="gj" onclick="gjTab('gj')">💐 경조사 정리</button><button type="button" class="gj-tab" data-t="rc" onclick="gjTab('rc')">🧾 계산서·영수증 사진</button></div>
+<div id="gjTabGj">
 <div class="gj-card">
-<div class="gj-h">💐 경조사 소식 넣기 <small>링크·문구·캡처 중 하나만 넣어도 돼요</small></div>
+<div class="gj-h">💐 경조사 소식 넣기 <small>링크·문구·사진·PDF 중 하나만 넣어도 돼요 (카톡 내용을 통째로 붙여도 돼요)</small></div>
 <label class="gj-l">① 링크 (모바일 청첩장·부고)</label>
 <input type="url" id="gjUrl" class="gj-in" placeholder="https://..." autocomplete="off">
 <label class="gj-l">② 문구 붙여넣기 (링크 없는 부고 문자 등)</label>
 <textarea id="gjText" class="gj-in" rows="4" placeholder="카톡·문자 내용을 그대로 붙여 넣으세요"></textarea>
-<label class="gj-l">③ 캡처 사진 (여러 장 가능)</label>
+<label class="gj-l">③ 캡처 사진 · PDF (여러 개 가능 · PC는 Ctrl+V로 붙여넣기도 돼요)</label>
 <div class="gj-photos" id="gjPhotoList"></div>
-<label class="gj-btn gj-sub" style="display:inline-flex">📷 사진 올리기<input type="file" id="gjPhotoInput" accept="image/*" multiple style="display:none" onchange="gjAddPhotos(this.files); this.value='';"></label>
+<div id="gjPdfInfo" class="gj-pdfinfo" style="display:none"></div>
+<label class="gj-btn gj-sub" style="display:inline-flex">📷 사진·PDF 올리기<input type="file" id="gjPhotoInput" accept="image/*,application/pdf" multiple style="display:none" onchange="gjAddPhotos(this.files); this.value='';"></label>
 <label class="gj-l">메모</label>
 <input type="text" id="gjMemo" class="gj-in" placeholder="예) 신영호 이사님의 아들 결혼소식입니다">
 <div id="gjNotice" class="gj-notice" style="display:none"></div>
-<div class="gj-row"><button type="button" class="gj-btn gj-main" id="gjExtractBtn" onclick="gjExtract()">🔍 추출</button><button type="button" class="gj-btn gj-sub" onclick="gjFillForm({}); gjShowForm(true);">✏️ 직접 입력</button></div>
+<div class="gj-row"><button type="button" class="gj-btn gj-main" id="gjExtractBtn" onclick="gjExtract()">🔍 추출 (AI)</button><button type="button" class="gj-btn gj-sub" onclick="gjRuleFill()">📝 규칙으로 정리</button><button type="button" class="gj-btn gj-sub" onclick="gjFillForm({}); gjShowForm(true);">✏️ 직접 입력</button></div>
 </div>
 
 <div class="gj-card" id="gjFormCard" style="display:none">
@@ -8697,6 +8700,27 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 <div class="gj-h">📚 경조사 목록 <small id="gjListCount"></small></div>
 <div id="gjList"><div class="gj-empty">불러오는 중…</div></div>
 <div class="gj-set">저장 폴더: <a id="gjFolderLink" href="#" target="_blank" rel="noopener">확인 중…</a> <button type="button" class="gj-link" onclick="gjChangeFolder()">폴더 바꾸기</button></div>
+</div>
+</div>
+<div id="gjTabRc" style="display:none">
+<div class="gj-card">
+<div class="gj-h">🧾 계산서·영수증 사진 정리 <small>사진을 돌리고 잘라서 A4 한 장에 2장씩 꽉 채워 인쇄해요 (회계사무실 제출용)</small></div>
+<div class="rc-drop" id="rcDrop" onclick="document.getElementById('rcFile').click()"><input type="file" id="rcFile" accept="image/*" style="display:none" onchange="rc_handleFileSelect(event)"><b>📷 사진 열기</b><small>PC: 끌어다 놓기 · 카톡 사진 복사 후 Ctrl+V</small></div>
+<div class="rc-tools">
+<button type="button" onclick="rc_rotateImage(-90)">↺ 왼쪽 90°</button><button type="button" onclick="rc_rotateImage(90)">↻ 오른쪽 90°</button><button type="button" onclick="rc_rotateImage(180)">↕ 180°</button>
+<button type="button" onclick="rc_rotateFree(-2)">⟲ -2°</button><button type="button" onclick="rc_rotateFree(2)">⟳ +2°</button>
+<button type="button" class="hl" onclick="rc_cropSelectedArea()">✂️ 파란 네모만 자르기</button><button type="button" onclick="rc_undoImage()">↩️ 되돌리기</button>
+<button type="button" id="rcEnhance" onclick="rc_toggleEnhance()">🔆 글씨 선명하게</button><button type="button" onclick="rc_resetImage()">🔄 원본으로</button>
+</div>
+<div class="rc-canvas"><canvas id="rcCanvas" width="700" height="500"></canvas></div>
+<div class="rc-tip">파란 네모의 흰 점을 끌어 크기를 맞추고, 안쪽을 끌면 이동해요.</div>
+<div class="gj-row"><button type="button" class="gj-btn gj-main" onclick="rc_addToA4Sheet('half')">➕ A4에 넣기 (1장에 2개)</button><button type="button" class="gj-btn gj-sub" onclick="rc_addToA4Sheet('full')">➕ A4 1장에 크게</button></div>
+</div>
+<div class="gj-card">
+<div class="gj-h">🖨 A4 미리보기 <small id="rcBadge">현재 0장 배치됨</small></div>
+<div class="rc-a4wrap"><div class="rc-sheet" id="rcSheet"><div class="slot-empty-msg" id="rcEmpty">위에서 사진을 돌리고 자른 뒤<br><b>[➕ A4에 넣기]</b>를 누르면 여기에 들어가요.</div></div></div>
+<div class="gj-row"><button type="button" class="gj-btn gj-sub" onclick="rc_clearA4Sheet()">🗑️ 비우기</button><button type="button" class="gj-btn gj-main" onclick="rc_printInvoiceDoc()">🖨️ 이대로 A4 인쇄</button></div>
+</div>
 </div>
 </div>
 </div>
@@ -13444,6 +13468,7 @@ var EXI_PURPOSES = [
   { k: '납품송장', t: '🚛 납품송장', d: '' }, { k: '사업자등록증', t: '🏢 사업자등록증 → 업체 등록', d: '' },
   { k: '명함', t: '📇 명함 → 연락처 저장', d: '' }, { k: '입금문자', t: '💰 입금 문자', d: '' },
   { k: '세금계산서', t: '🧮 받은 세금계산서 (보관)', d: '' }, { k: '도면', t: '📏 도면 (보관)', d: '' },
+  { k: 'GJ', t: '💐 경조사 (결혼·부고·개업·취임)', d: '경조사 화면으로 가져가서 정리·PDF 저장·인쇄' },
   { k: '참고자료', t: '📚 참고자료로 보관', d: '물가정보 등 업무에 필요한 자료' },
   { k: '제외', t: '🚫 필요 없음 (제외)', d: '' }
 ];
@@ -13496,6 +13521,7 @@ if (k === 'BUYPRINT') {
 }
 if (k === 'BUYCHK') { window.__exiPurpose = 'BUY'; window.__exiBuyId = id; if (exiTypeOf_(it) !== '견적·명세') { it.type = '견적·명세'; try { google.script.run.updateExtractItemBackend({ id: id, type: '견적·명세' }); } catch (e) {} } openExtractItem(id, true); return; }
 if (k === '제외') { setExtractStatus(id, '제외'); return; }
+if (k === 'GJ') { gjFromExtract(id); return; }
 if (k === '참고자료') { changeExtractType(id, '참고자료'); return; }
 var type = k;
 if (exiTypeOf_(it) !== type) { it.type = type; if (it.status === '확인필요') it.status = '대기'; try { google.script.run.updateExtractItemBackend({ id: id, type: type }); } catch (e) {} renderExtractQueue(); syncHubExtractFromExi_(); }
@@ -17182,6 +17208,7 @@ textarea.gj-in{line-height:1.5;resize:vertical}
 .gj-main{background:#1F5FD6;border-color:#1F5FD6;color:#fff}.gj-sub{flex:0 0 auto}
 .gj-photos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .gj-ph{position:relative;width:74px;height:74px;border-radius:8px;overflow:hidden;border:1px solid #E5E8EB}.gj-ph img{width:100%;height:100%;object-fit:cover}
+.gj-pdftag{position:absolute;left:2px;bottom:2px;background:#B91C1C;color:#fff;font-size:10px;font-weight:900;padding:1px 4px;border-radius:4px}
 .gj-ph button{position:absolute;top:2px;right:2px;width:24px;height:24px;border-radius:12px;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:13px;cursor:pointer}
 .gj-notice{margin-top:12px;padding:12px;border-radius:10px;background:#FFF7E6;color:#8A4B00;font-size:14px;font-weight:700;line-height:1.5;white-space:pre-line}
 .gj-chk{padding:10px 12px;border-radius:10px;background:#FEF2F2;color:#B91C1C;font-size:13px;font-weight:700;line-height:1.5;margin-bottom:6px}
@@ -17195,6 +17222,16 @@ textarea.gj-in{line-height:1.5;resize:vertical}
 .gj-item .gj-a{display:flex;gap:6px;flex:0 0 auto}.gj-item .gj-a button{height:36px;padding:0 10px;border-radius:8px;border:1px solid #D1D6DB;background:#fff;font-weight:800;font-size:13px;cursor:pointer}
 .gj-ok{color:#067647;font-size:12px;font-weight:800}
 .gj-empty{padding:16px 0;color:#8B95A1;font-size:14px;text-align:center}
+.gj-tabs{display:flex;gap:6px;margin-bottom:12px}.gj-tab{flex:1;height:44px;border-radius:12px;border:1px solid #D1D6DB;background:#fff;font-size:14px;font-weight:900;color:#4E5968;cursor:pointer}.gj-tab.on{background:#191F28;border-color:#191F28;color:#fff}
+.gj-pdfinfo{font-size:13px;color:#4E5968;margin:0 0 8px;font-weight:700}
+.rc-drop{border:2px dashed #93c5fd;background:#f8fafc;border-radius:10px;padding:14px;text-align:center;cursor:pointer;margin-bottom:10px}.rc-drop b{display:block;font-size:15px}.rc-drop small{color:#64748B;font-size:12px}.rc-drop.dragover{background:#eff6ff}
+.rc-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.rc-tools button{height:38px;padding:0 10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-weight:800;font-size:13px;cursor:pointer}.rc-tools button.hl,.rc-tools button.highlight{background:#eff6ff;border-color:#3b82f6;color:#1d4ed8}
+.rc-canvas{background:#1e293b;border-radius:10px;display:flex;justify-content:center;align-items:center;padding:8px;overflow:hidden}#rcCanvas{max-width:100%;height:auto;touch-action:none;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.rc-tip{font-size:12px;color:#8B95A1;margin-top:6px}
+.rc-a4wrap{background:#dcdfe4;border-radius:10px;padding:10px;overflow:auto}.rc-sheet{width:210mm;min-height:297mm;padding:8mm 10mm;background:#fff;display:flex;flex-direction:column;gap:5mm;box-sizing:border-box;transform-origin:top left}
+.invoice-slot{width:100%;border:1px dashed #cbd5e1;border-radius:4px;position:relative;overflow:hidden}.invoice-slot.size-half{height:136mm}.invoice-slot.size-full{height:275mm}.invoice-slot img{width:100%;height:100%;display:block}.invoice-slot img.fit-fill{object-fit:fill}.invoice-slot img.fit-contain{object-fit:contain}
+.slot-controls{position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:2}.slot-btn{background:rgba(30,41,59,.82);color:#fff;border:none;border-radius:4px;padding:6px 8px;font-size:12px;font-weight:700;cursor:pointer}.slot-btn.del{background:rgba(220,38,38,.88)}.slot-empty-msg{color:#94a3b8;font-size:14px;text-align:center;padding:60px 20px}
+@media (max-width:820px){.rc-a4wrap{height:calc(297mm * 0.42 + 20px)}.rc-sheet{transform:scale(.42)}}
 .gj-set{margin-top:12px;font-size:12px;color:#8B95A1}.gj-set a{color:#1F5FD6;font-weight:700}.gj-link{border:none;background:none;color:#1F5FD6;font-weight:800;font-size:12px;cursor:pointer;text-decoration:underline}
 </style>
 <script>
@@ -17211,8 +17248,40 @@ function gjOpen(){
   try { v3SyncTitle(); } catch (e) {}
 }
 /* 사진: 휴대폰 사진이 커서 긴 변 1600px JPEG로 줄여서 보냄 */
+function gjTab(t){ [].forEach.call(document.querySelectorAll('#gyeongjoSection .gj-tab'), function(b){ b.classList.toggle('on', b.getAttribute('data-t') === t); }); document.getElementById('gjTabGj').style.display = t === 'gj' ? '' : 'none'; document.getElementById('gjTabRc').style.display = t === 'rc' ? '' : 'none'; }
+function gjTabIs(t){ try { return v3Vis('gyeongjoSection') && document.getElementById(t === 'rc' ? 'gjTabRc' : 'gjTabGj').style.display !== 'none'; } catch (e) { return false; } }
+var gjPdfText = '', gjPdfNames = [];
+/* PDF: 글자는 꺼내서 AI·규칙에 함께 주고, 쪽은 그림(최대 4쪽)으로 바꿔 사진처럼 다룸 */
+function gjAddPdf(f){
+  if (typeof pdfjsLib === 'undefined') { showToast('PDF를 읽는 도구를 불러오지 못했어요. 새로고침 후 다시 해 주세요.'); return; }
+  var rd = new FileReader();
+  rd.onload = function(){
+    pdfjsLib.getDocument(new Uint8Array(rd.result)).promise.then(async function(pdf){
+      var n = Math.min(pdf.numPages, 4), txt = [];
+      for (var i = 1; i <= pdf.numPages && i <= 10; i++) {
+        var pg = await pdf.getPage(i);
+        try { var tc = await pg.getTextContent(); txt.push(tc.items.map(function(x){ return x.str; }).join(' ')); } catch (e) {}
+        if (i <= n && gjPhotos.length < 8) {
+          var vp0 = pg.getViewport({ scale: 1 }), sc = Math.min(2, 1600 / Math.max(vp0.width, vp0.height)), vp = pg.getViewport({ scale: sc });
+          var c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+          var cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
+          await pg.render({ canvasContext: cx, viewport: vp }).promise;
+          gjPhotos.push({ b64: c.toDataURL('image/jpeg', 0.85).split(',')[1], mime: 'image/jpeg', pdf: f.name });
+        }
+      }
+      var t = txt.join('\n').replace(/[ \t]+/g, ' ').trim();
+      if (t) gjPdfText += (gjPdfText ? '\n' : '') + t;
+      gjPdfNames.push(f.name + ' (' + pdf.numPages + '쪽)');
+      gjRenderPhotos();
+    }).catch(function(e){ showToast('❌ PDF를 열지 못했어요: ' + (e.message || e)); });
+  };
+  rd.readAsArrayBuffer(f);
+}
 function gjAddPhotos(files){
-  [].slice.call(files || []).slice(0, 6 - gjPhotos.length).forEach(function(f){
+  var list = [].slice.call(files || []);
+  list.filter(function(f){ return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name || ''); }).forEach(gjAddPdf);
+  list = list.filter(function(f){ return !(/pdf$/i.test(f.type) || /\.pdf$/i.test(f.name || '')); });
+  list.slice(0, Math.max(0, 8 - gjPhotos.length)).forEach(function(f){
     var rd = new FileReader();
     rd.onload = function(){
       var img = new Image();
@@ -17228,20 +17297,38 @@ function gjAddPhotos(files){
   });
 }
 function gjRenderPhotos(){
-  document.getElementById('gjPhotoList').innerHTML = gjPhotos.map(function(p, i){ return '<div class="gj-ph"><img src="data:' + p.mime + ';base64,' + p.b64 + '"><button type="button" onclick="gjPhotos.splice(' + i + ',1); gjRenderPhotos();">✕</button></div>'; }).join('');
+  var pi = document.getElementById('gjPdfInfo'); if (pi) { pi.style.display = gjPdfNames.length ? 'block' : 'none'; pi.textContent = gjPdfNames.length ? '📄 PDF: ' + gjPdfNames.join(', ') + (gjPdfText ? ' · 글자 ' + gjPdfText.length + '자 읽음' : ' · 글자 없음(사진으로 읽어요)') : ''; }
+  document.getElementById('gjPhotoList').innerHTML = gjPhotos.map(function(p, i){ return '<div class="gj-ph"><img src="data:' + p.mime + ';base64,' + p.b64 + '">' + (p.pdf ? '<span class="gj-pdftag">PDF</span>' : '') + '<button type="button" onclick="gjPhotos.splice(' + i + ',1); if (!gjPhotos.some(function(x){ return x.pdf; })) { gjPdfText = \'\'; gjPdfNames = []; } gjRenderPhotos();">✕</button></div>'; }).join('');
 }
 function gjNotice(msg){ var n = document.getElementById('gjNotice'); n.style.display = msg ? 'block' : 'none'; n.textContent = msg || ''; }
 function gjShowForm(on){ document.getElementById('gjFormCard').style.display = on ? 'block' : 'none'; document.getElementById('gjDone').style.display = 'none'; gjKindView(); if (on) setTimeout(function(){ document.getElementById('gjFormCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); }
 function gjKindView(){ var k = gjV('gjKind') || '결혼'; [].forEach.call(document.querySelectorAll('#gyeongjoSection .gj-k'), function(el){ el.style.display = el.classList.contains('gj-k-' + k) ? '' : 'none'; }); }
+/* 문구 칸에 링크가 섞여 있으면 링크 칸으로 옮김 (카톡 내용을 통째로 붙여도 됨) */
+function gjPickUrl(){
+  if (gjV('gjUrl')) return;
+  var m = gjV('gjText').match(/https?:\/\/[^\s<>"']+/);
+  if (m) gjSet('gjUrl', m[0].replace(/[).,]+$/, ''));
+}
+function gjAllText(extra){ return [gjV('gjText'), gjPdfText, extra || ''].filter(Boolean).join('\n'); }
+function gjRuleFill(extra){
+  gjPickUrl();
+  var raw = gjAllText(extra);
+  if (!raw.trim()) { gjNotice('규칙 정리는 글자가 있어야 해요. 문구를 붙여 넣거나 글자가 있는 PDF를 올려 주세요. (사진은 [🔍 추출 (AI)]로 읽어요)'); return; }
+  var d = window.gjRuleParse ? gjRuleParse(raw) : {};
+  gjLast = d; gjFillForm(d); gjShowForm(true);
+}
 function gjExtract(){
-  var p = { url: gjV('gjUrl'), text: gjV('gjText'), memo: gjV('gjMemo'), images: gjPhotos };
+  gjPickUrl();
+  var p = { url: gjV('gjUrl'), text: gjAllText(), memo: gjV('gjMemo'), images: gjPhotos.slice(0, 8).map(function(x){ return { b64: x.b64, mime: x.mime }; }) };
   if (!p.url && !p.text && !p.images.length) { gjNotice('링크, 문구, 캡처 사진 중 하나는 넣어 주세요.'); return; }
   var btn = document.getElementById('gjExtractBtn'); btn.disabled = true; btn.textContent = '⏳ 읽는 중… (10~30초)'; gjNotice('');
   google.script.run.withSuccessHandler(function(r){
     btn.disabled = false; btn.textContent = '🔍 추출';
     if (!r || !r.success) {
       gjNotice((r && r.error) || '추출하지 못했어요.' + ((r && r.dup) ? '\n※ 이 링크는 ' + r.dup.date + '에 이미 저장된 건이에요 (' + r.dup.title + ')' : ''));
-      if (r && r.needCapture) try { document.getElementById('gjPhotoInput').parentNode.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+      if (r && r.needCapture) { try { document.getElementById('gjPhotoInput').parentNode.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} return; }
+      // AI가 안 되면 → 규칙 정리기로 대신 (글자가 있을 때)
+      if (gjAllText(r && r.linkText).trim()) { gjRuleFill(r && r.linkText); gjNotice(((r && r.error) || 'AI가 응답하지 않았어요') + '\n→ 규칙으로 대신 정리했어요. 칸마다 꼭 확인해 주세요.'); }
       return;
     }
     gjLast = r.data;
@@ -17300,7 +17387,7 @@ function gjSave(force){
   }).withFailureHandler(function(e){ btn.disabled = false; btn.textContent = '💾 저장 (PDF 만들기)'; showToast('❌ ' + (e.message || e)); })
     .gj_save({ data: d, url: gjV('gjUrl'), memo: gjV('gjMemo'), images: photosOn ? gjPhotos : [], photos: photosOn, force: !!force });
 }
-function gjReset(){ ['gjUrl', 'gjText', 'gjMemo'].forEach(function(id){ gjSet(id, ''); }); gjPhotos = []; gjRenderPhotos(); gjNotice(''); gjShowForm(false); document.getElementById('gyeongjoSection').scrollTop = 0; }
+function gjReset(){ ['gjUrl', 'gjText', 'gjMemo'].forEach(function(id){ gjSet(id, ''); }); gjPhotos = []; gjPdfText = ''; gjPdfNames = []; gjRenderPhotos(); gjNotice(''); gjShowForm(false); document.getElementById('gyeongjoSection').scrollTop = 0; }
 /* PDF는 누르는 즉시 새 창으로 (늦게 열면 휴대폰이 팝업 차단) */
 function gjOpenPdf(fileId){ var u = 'https://drive.google.com/file/d/' + fileId + '/view'; var w = window.open(u, '_blank'); if (!w) location.href = u; }
 function gjPrint(fileId){
@@ -17340,6 +17427,25 @@ function gjChangeFolder(){
     var a = document.getElementById('gjFolderLink'); a.textContent = r.folderName; a.href = r.folderUrl; showToast('📁 저장 폴더를 [' + r.folderName + ']로 바꿨어요');
   }).gj_setFolder(link);
 }
+/* 경조사 화면에 파일을 끌어다 놓기 (PC) */
+(function(){ var sec = document.getElementById('gyeongjoSection'); if (!sec) return;
+  sec.addEventListener('dragover', function(e){ if (gjTabIs('gj')) e.preventDefault(); });
+  sec.addEventListener('drop', function(e){ if (!gjTabIs('gj')) return; e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) gjAddPhotos(e.dataTransfer.files); });
+})();
+/* 추출함에서 '💐 경조사'를 고르면 그 파일을 경조사 화면에 바로 넣음 */
+function gjFromExtract(id){
+  var it = (window.exiData && exiData.list || []).find(function(x){ return x.id === id; }); if (!it || !it.fileId) { showToast('파일 정보가 없어요'); return; }
+  showToast('💐 경조사 화면으로 가져오는 중…');
+  google.script.run.withSuccessHandler(function(r){
+    if (!r || !r.success) { showToast('❌ ' + ((r && r.error) || '파일을 가져오지 못했어요')); return; }
+    try { v3HideAll(); } catch (e) {} gjOpen(); gjTab('gj'); gjReset();
+    var bytes = atob(r.base64), arr = new Uint8Array(bytes.length); for (var i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    var f = new File([arr], r.name || 'file', { type: r.mime || '' });
+    gjAddPhotos([f]); gjSet('gjMemo', it.memo || it.subject || '');
+    try { setExtractStatus(id, '완료'); } catch (e) {}
+    showToast('💐 경조사 화면에 넣었어요. [🔍 추출]을 눌러 주세요.');
+  }).withFailureHandler(function(e){ showToast('❌ ' + (e.message || e)); }).getExtractFileBackend(it.fileId);
+}
 /* 메뉴: 문서관리 > 경조사 */
 (function(){
   var oDocGo = window.v3DocGo;
@@ -17348,9 +17454,1144 @@ function gjChangeFolder(){
   v3CurKey = function(){ if (v3Vis('gyeongjoSection')) return 'doc_GJ'; return oCur.apply(this, arguments); };
   try { V3_PAGE_TITLES.push(['gyeongjoSection', '경조사']); } catch (e) {}
 })();
+/* [§36-B] 규칙 정리기 — 'Gemini랑 만든 회계사무실 문서 정리 v7' 의 정리 규칙을 그대로 옮김 (AI가 안 될 때 대신 씀) */
+(function(){
+function fixNames(line) {
+  return line.replace(/[가-힣]{6,}/g, function(chunk) {
+    if (chunk.length >= 6 && chunk.length % 3 === 0) {
+      var names = [];
+      for (var i = 0; i < chunk.length; i += 3) {
+        names.push(chunk.slice(i, i + 3));
+      }
+      return names.join(' ');
+    }
+    return chunk;
+  });
+}
+
+
+
+function findMatchingItem(arr, predicate) {
+  for (var i = 0; i < arr.length; i++) {
+    if (predicate(arr[i])) return arr[i];
+  }
+  return null;
+}
+
+// 한 줄에 붙어 있는 상주 관계나 빈소/입관/발인/장지/혼주 줄바꿈을 정리하는 전처리 함수
+function preprocessRawText(raw) {
+  var text = raw;
+  // 1) 붙어 있는 주요 키워드 줄바꿈 분리
+  text = text.replace(/(빈소)\s*(?=[가-힣A-Za-z0-9])/g, '\n빈소\n');
+  text = text.replace(/(입관)\s*(?=\d{4}년|\d{1,2}월|\d{1,2}\.)/g, '\n입관\n');
+  text = text.replace(/(발인)\s*(?=\d{4}년|\d{1,2}월|\d{1,2}\.)/g, '\n발인\n');
+  text = text.replace(/(화장장\/장지|화장장\s*\/\s*장지|장지)\s*(?=[가-힣A-Za-z0-9])/g, '\n$1\n');
+  text = text.replace(/(일\s*시|날\s*짜)\s*(?=[:\-]?\s*\d{4}년|\d{1,2}월|\d{1,2}\.)/g, '\n일시\n');
+
+  // 2) 청첩장에서 성과 이름이 줄바꿈으로 찢어진 혼주 블록 자동 결합
+  // 예: "심\n완보\n·\n한\n선숙\n의 아들" -> "심완보·한선숙의 아들"
+  text = text.replace(/([가-힣])\s*\n\s*([가-힣]{1,2})\s*\n\s*([·•\.])\s*\n\s*([가-힣])\s*\n\s*([가-힣]{1,2})\s*\n\s*(의\s*(?:아들|장남|차남|삼남|딸|장녀|차녀|삼녀|자|녀))/g, '$1$2$3$4$5$6');
+  text = text.replace(/((?:故\s*|고\s*)?[가-힣]{2,4})\s*\n\s*([·•\.])\s*\n\s*((?:故\s*|고\s*)?[가-힣]{2,4})\s*\n\s*(의\s*(?:아들|장남|차남|삼남|딸|장녀|차녀|삼녀|자|녀))/g, '$1$2$3$4');
+  text = text.replace(/([가-힣])\s*\n\s*([가-힣]{1,2})\s*\n\s*(의\s*(?:아들|장남|차남|삼남|딸|장녀|차녀|삼녀|자|녀))/g, '$1$2$3');
+
+  // 3) 상주정보 섹션 내부에서 관계어가 이름과 붙어 있는 경우 줄바꿈 분리
+  var lines = text.split(/\r?\n/);
+  var processed = [];
+  var inMournerZone = false;
+  var multiRoles = ['외손자', '외손녀', '외손주', '외손부', '외손서', '며느리', '배우자', '아들', '사위', '손자', '손녀', '손부', '손서', '손주', '외손', '자부', '자매', '동생', '오빠', '언니', '누나'];
+  var singleRoles = ['자', '녀', '손', '딸', '부', '모', '형', '제', '매'];
+
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i].trim();
+    if (!l) continue;
+
+    if (/^(상주|상주\s*안내|상주\s*정보|상주정보|혼주|가족관계)$/.test(l)) {
+      inMournerZone = true;
+      processed.push(l);
+      continue;
+    }
+    if (/^(장례식장|빈소|입관|발인|장지|화장장|일시|일\s*시|장소|장\s*소|Location|Wedding\s*day|Gallery|Account|Guest\s*Book|방명록|게스트\s*스냅|장례\s*일정|장례일정|예식\s*일정|행사\s*일정|오시는\s*길|오시는길|교통정보|교통\s*정보|부의금|축의금|축하금|후원|마음\s*전하|전체보기|공지)/i.test(l)) {
+      inMournerZone = false;
+    }
+
+    if (inMournerZone) {
+      for (var m = 0; m < multiRoles.length; m++) {
+        var mr = multiRoles[m];
+        var reMulti = new RegExp('([가-힣]|^)' + mr + '(?=[가-힣]{2,})', 'g');
+        l = l.replace(reMulti, function(match, p1) {
+          return (p1 ? p1 + '\n' : '') + mr + '\n';
+        });
+      }
+      var subLines = l.split('\n');
+      for (var s = 0; s < subLines.length; s++) {
+        var sl = subLines[s].trim();
+        for (var srIdx = 0; srIdx < singleRoles.length; srIdx++) {
+          var sr = singleRoles[srIdx];
+          if (sl.indexOf(sr) === 0 && sl.length >= 4 && (sl.length - 1) % 3 === 0) {
+            sl = sr + '\n' + sl.slice(1);
+            break;
+          }
+        }
+        processed.push(sl);
+      }
+    } else {
+      processed.push(l);
+    }
+  }
+  return processed.join('\n');
+}
+
+function isNoiseLine(line) {
+  var cleaned = line.replace(/[\.\!~>]/g, '').trim();
+  if (!cleaned) return true;
+  var exactNoise = [
+    '카카오톡 공유', '문자공유', '문자 공유', '공유하기', '링크복사', '링크 복사',
+    '복사', '계좌복사', '계좌 복사', '부의금 계좌보기', '축의금 계좌보기', '계좌번호 보기',
+    '부의금 보내기', '축의금 보내기', '간편하게 부의금을 보내실 수 있어요', '간편하게 축의금을 보내실 수 있어요',
+    '전체보기', '전체 보기', '사진 더 보기', '더보기', '연락하기', '전화하기', '전화걸기',
+    '길찾기', '네비게이션', '대중교통', '대중교통티맵네비게이션', '카카오맵', '네이버 지도', '네이버지도',
+    '지도보기', '지도 보기', '영정사진', '근조화환', '화환보내기', '조문메시지',
+    '근조화환 주문하기', '화환으로 당신의 마음을 전하세요', '근조화환으로 추모의 마음 전하기',
+    '간편화환추모의 마음 전하기', '간편화환', '축하 화환 보내기', 'Wreath', 'wreath',
+    '삼가고인의 명복을 빕니다', '삼가 고인의 명복을 빕니다', '부디 영면에 드시길 바랍니다',
+    '조문 메세지를 선택하세요', '조문 메시지를 선택하세요', '작성완료', '작성 완료', '작성하기',
+    '부고장전달쌀화환 보내기', '부고장전달', '쌀화환 보내기', '근조화환 보내기', '청첩장 링크 복사하기',
+    '내비게이션', '카카오내비', '티맵', '오시는길', '오시는 길', '주차', '주차 안내',
+    '예금주', '은행명', '계좌번호', '닫기', '확인', '모바일 부고장', '모바일 청첩장',
+    'Gallery', '갤러리', 'Guest Photo Drop', '하객 포토 드롭', '사진 · 영상 올리기'
+  ];
+  if (exactNoise.indexOf(cleaned) !== -1) return true;
+  if (/^gallery-\d+$/i.test(cleaned)) return true;
+  if (/^일\s*월\s*화\s*수\s*목\s*금\s*토$/.test(cleaned)) return true;
+  if (/^(?:\d{1,2}\s+){6,}\d{1,2}$/.test(cleaned)) return true;
+  if (/^Copyright\s*\d{4}/i.test(cleaned) || /^All rights reserved/i.test(cleaned)) return true;
+  if (/^(카카오톡\s*공유|문자\s*공유|링크\s*복사|계좌\s*복사|부의금\s*전달|부의금\s*보내기|축의금\s*보내기|축하\s*화환|간편하게\s*(부의금|축의금)을|근조화환|화환으로|간편화환|조문\s*메[세시]지|부고장\s*전달|쌀화환|대중교통|청첩장\s*링크)/.test(cleaned)) return true;
+  if (/(보내실\s*수\s*있어요|맵으로\s*이동|새창열림|사진작가가\s*되어주세요|스냅\s*작가가\s*되어주세요|커피\s*쿠폰을\s*씁니다|파일명에\s*이름을|화환\s*서비스를\s*준비했어요|축하의\s*마음을\s*전해\s*보세요|청첩장을\s*지참|출입을\s*위해)/.test(cleaned)) return true;
+  if (/^\d+\s*m$/i.test(cleaned)) return true;
+  if (/^https?:\/\//i.test(cleaned)) return true;
+  return false;
+}
+
+function toPureKoreanOutput(text) {
+  var out = text;
+  out = out.replace(/故\s*/g, '고 ');
+  out = out.replace(/訃\s*告/g, '부 고');
+  out = out.replace(/祝\s*結\s*婚/g, '축 결혼');
+  out = out.replace(/祝\s*就\s*任/g, '축 취임');
+  out = out.replace(/祝\s*賀/g, '축 하');
+  out = out.replace(/謹\s*弔/g, '근 조');
+  out = out.replace(/\([\u4E00-\u9FFF\s]+\)/g, '');
+  out = out.replace(/[\u4E00-\u9FFF]/g, '');
+  var lines = out.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    lines[i] = lines[i].replace(/ {2,}/g, ' ').replace(/\s+$/g, '');
+  }
+  return lines.join('\n');
+}
+
+function convertText(raw, forcedIn) {
+  raw = String(raw || '').trim();
+
+  var expandedRaw = preprocessRawText(raw);
+  var rawSplit = expandedRaw.split(/\r?\n/);
+  var lines = [];
+  for (var idx = 0; idx < rawSplit.length; idx++) {
+    var trimmed = rawSplit[idx].trim();
+    if (trimmed.length > 0 && !isNoiseLine(trimmed)) {
+      lines.push(trimmed);
+    }
+  }
+  var full = lines.join('\n');
+
+  // 행사 유형 자동 판별
+  var forced = forcedIn || 'auto';
+  var hasStrongFuneral = /(별세|부고|訃告|빈소|발인|장례식장|장례\s*일정|장례일정|입관|부의금|조문|화장장)/.test(full);
+  var hasStrongWedding = /(신랑|신부|청첩장|결혼합니다|결혼식|예식장|Wedding|화촉)/.test(full);
+  var hasStrongInauguration = /(취임|이·취임|이취임|취임식|청년회|라이온스|로타리|JC|특우회|향우회|동창회|총동문회|개업|창립|기념식|총회)/.test(full);
+
+  var isFuneral = (forced === 'funeral') || (forced === 'auto' && hasStrongFuneral && !hasStrongWedding);
+  var isInauguration = (forced === 'inauguration') || (forced === 'auto' && !isFuneral && hasStrongInauguration && !hasStrongWedding);
+  var isWedding = (forced === 'wedding') || (forced === 'auto' && !isFuneral && !isInauguration && (hasStrongWedding || /(결혼|예식|혼주|웨딩)/i.test(full)));
+  var category = isFuneral ? '[부 고]' : (isInauguration ? '[축 취임]' : '[축 결혼]');
+
+  var deceasedName = '';
+  var targetInfo = '';
+  var hasStandaloneByeolse = false;
+  var noticeLine = '';
+  var weddingGreetingLines = [];
+  var eventTitleLines = [];
+  var venueName = '';
+  var venueAddr = '';
+  var mourners = [];
+  var weddingHosts = [];
+  var hasGroomHost = false;
+  var hasBrideHost = false;
+  var schedules = [];
+  var accounts = [];
+
+  var section = '';
+  var roles = [
+    '외손자', '외손녀', '외손주', '외손부', '외손서', '며느리', '배우자',
+    '아들', '사위', '손자', '손녀', '손부', '손서', '손주', '외손',
+    '자부', '자매', '동생', '오빠', '언니', '누나', '신랑', '신부', '혼주', '상주',
+    '취임회장', '신임회장', '이임회장', '취임자', '주최', '주관', '후원', '초대', '모시는글',
+    '장남', '차남', '삼남', '장녀', '차녀', '삼녀', '막내', '남편', '부인', '처',
+    '자', '녀', '손', '딸', '부', '모', '형', '제', '매'
+  ];
+  var scheduleLabels = ['화장장/장지', '화장장 / 장지', '화장장', '발인', '입관', '장지', '별세', '일시', '일 시', '날짜', '날 짜', '예식일시', '예식일', '예식시간', '시간'];
+  var bankRegex = /(부산은행|경남은행|국민은행|KB국민은행|KB\s*국민은행|KB국민|신한은행|우리은행|하나은행|농협은행|NH농협|단위농협|축협|기업은행|IBK기업|새마을금고|우체국|카카오뱅크|토스뱅크|케이뱅크|수협|신협|대구은행|아이엠뱅크|iM뱅크|광주은행|전북은행|제주은행|SC제일|씨티은행|산업은행|농협)/;
+
+  var currentMournerRole = '';
+  var currentMournerNames = [];
+
+  function flushMournerGroup() {
+    if (currentMournerRole && currentMournerNames.length > 0) {
+      var joinedNames = currentMournerNames.join(' ');
+      var pad = currentMournerRole.length === 1 ? '　　　' : (currentMournerRole.length === 2 ? '　　' : '　');
+      mourners.push(currentMournerRole + pad + joinedNames);
+    }
+    currentMournerRole = '';
+    currentMournerNames = [];
+  }
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+
+    // 댓글/방명록/포토드롭/게스트스냅/화환 섹션이 나오면 즉시 분석 종료!
+    if (/^(추모의\s*글|추모글|조문\s*메[세시]지|조문글|Guest\s*Book|방명록|Guest\s*Photo\s*Drop|하객\s*포토\s*드롭|게스트\s*스냅|축하\s*화환\s*보내기)/i.test(line)) {
+      flushMournerGroup();
+      break;
+    }
+
+    if (/^\[.*(부고|訃|告|축|祝|취임|就任).*\]$/.test(line) || line === '부고' || line === '訃告' || line === '모바일 부고장' || line === '장례식장' || line === '초대장' || line === '모바일 초대장') {
+      continue;
+    }
+
+    // 섹션 전환 감지
+    if (/^(상주|상주\s*안내|상주\s*정보|상주정보|혼주|가족관계|행사\s*안내|임원\s*안내)$/.test(line)) {
+      flushMournerGroup();
+      section = 'mourner';
+      continue;
+    }
+    if (/^(장례\s*일정|장례일정|예식\s*일정|예식일정|행사\s*일정|행사일정|일정\s*안내|Wedding\s*day)$/i.test(line)) {
+      flushMournerGroup();
+      section = 'schedule';
+      continue;
+    }
+    if (/^(오시는\s*길|오시는길|교통정보|교통\s*정보|Location|예식장\s*안내)$/i.test(line)) {
+      flushMournerGroup();
+      section = 'location';
+      continue;
+    }
+    if (/^(부의금\s*계좌|부의금계좌|축의금\s*계좌|축의금계좌|축하금\s*계좌|축하금계좌|후원\s*계좌|마음\s*전하실\s*곳|마음전하실\s*곳|마음\s*전하시는\s*곳|마음전하시는\s*곳|계좌\s*안내|부의금|축의금|축하금|Account|신랑측|신부측|신랑\s*측|신부\s*측)$/i.test(line)) {
+      flushMournerGroup();
+      section = 'account';
+      continue;
+    }
+    if (/아래\s*계좌로\s*(부의금|축의금|축하금|후원금)을/.test(line) || /축하의\s*마음을\s*전달해\s*주세요/.test(line)) {
+      flushMournerGroup();
+      section = 'account';
+      continue;
+    }
+
+    if (/^(Gallery|갤러리)$/i.test(line)) {
+      flushMournerGroup();
+      section = 'gallery';
+      continue;
+    }
+    if (section === 'gallery') {
+      continue;
+    }
+
+    if (line === '별세') {
+      var nextL = (i + 1 < lines.length) ? lines[i + 1] : '';
+      if (!/^\d{4}년|\d{1,2}월|\d{4}[\.\-]/.test(nextL)) {
+        hasStandaloneByeolse = true;
+        continue;
+      }
+    }
+
+    // 결혼식 혼주 + 신랑·신부 패턴 (계좌 섹션의 '신랑 아버지', '신부 어머니' 중복 유입 원천 차단!)
+    if (isWedding && section !== 'account') {
+      var wedPersonMatch = line.match(/^(신랑|신부)\s*[:\-]?\s*([가-힣]{2,4})$/);
+      if (wedPersonMatch) {
+        var wRole = wedPersonMatch[1];
+        var wName = wedPersonMatch[2];
+        // '신랑 아버지', '신부 어머니', '신랑 혼주' 같은 관계 라벨은 당사자 이름이 아니므로 제외!
+        var isNotPersonName = /^(아버지|어머니|부친|모친|혼주|부모|측|가족|계좌)$/.test(wName);
+        if (!isNotPersonName) {
+          flushMournerGroup();
+          var parentSuffix = '';
+          if (i + 1 < lines.length && /^(?:故\s*|고\s*)?[가-힣]{2,4}(?:\s*[·•\.]\s*(?:故\s*|고\s*)?[가-힣]{2,4})?의\s*(?:아들|장남|차남|삼남|딸|장녀|차녀|삼녀|자|녀)$/.test(lines[i + 1])) {
+            parentSuffix = ' (' + lines[++i].replace(/\s*([·•\.])\s*/g, '$1') + ')';
+          }
+          if ((wRole === '신랑' && !hasGroomHost) || (wRole === '신부' && !hasBrideHost)) {
+            weddingHosts.push(wRole + '　　' + wName + parentSuffix);
+            if (wRole === '신랑') hasGroomHost = true;
+            if (wRole === '신부') hasBrideHost = true;
+          }
+          continue;
+        }
+      }
+      var singleLineWedMatch = line.match(/^((?:故\s*|고\s*)?[가-힣]{2,4}(?:\s*[·•\.]\s*(?:故\s*|고\s*)?[가-힣]{2,4})?)의\s*(아들|장남|차남|삼남|딸|장녀|차녀|삼녀|자|녀)\s+([가-힣]{2,4})$/);
+      if (singleLineWedMatch) {
+        flushMournerGroup();
+        var rel1 = singleLineWedMatch[2];
+        var roleLabel1 = /(아들|장남|차남|삼남|자)/.test(rel1) ? '신랑' : '신부';
+        if ((roleLabel1 === '신랑' && !hasGroomHost) || (roleLabel1 === '신부' && !hasBrideHost)) {
+          weddingHosts.push(roleLabel1 + '　　' + singleLineWedMatch[3] + ' (' + singleLineWedMatch[1].replace(/\s+/g, '') + '의 ' + rel1 + ')');
+          if (roleLabel1 === '신랑') hasGroomHost = true;
+          if (roleLabel1 === '신부') hasBrideHost = true;
+        }
+        continue;
+      }
+      if (/^(?:故\s*|고\s*)?[가-힣]{2,4}\s*[·•\.]\s*(?:故\s*|고\s*)?[가-힣]{2,4}의$/.test(line) && i + 2 < lines.length) {
+        var nextRel = lines[i + 1].trim();
+        var nextChild = lines[i + 2].trim();
+        if (/^(아들|장남|차남|삼남|딸|장녀|차녀|삼녀|자|녀)$/.test(nextRel) && /^[가-힣]{2,4}$/.test(nextChild)) {
+          flushMournerGroup();
+          var roleLabel2 = /(아들|장남|차남|삼남|자)/.test(nextRel) ? '신랑' : '신부';
+          if ((roleLabel2 === '신랑' && !hasGroomHost) || (roleLabel2 === '신부' && !hasBrideHost)) {
+            weddingHosts.push(roleLabel2 + '　　' + nextChild + ' (' + line.replace(/\s+/g, '') + ' ' + nextRel + ')');
+            if (roleLabel2 === '신랑') hasGroomHost = true;
+            if (roleLabel2 === '신부') hasBrideHost = true;
+          }
+          i += 2;
+          continue;
+        }
+      }
+    }
+
+    // 결혼식 축하/초대 인사말 수집 (예: "저희의 새로운 출발을 / 따뜻한 마음으로 축복해 주신다면 / 감사의 마음을 오래도록 간직하겠습니다.")
+    if (isWedding && section === '' && weddingGreetingLines.length < 3 && /(새로운\s*출발|축복해\s*주신다면|감사의\s*마음|오래도록\s*간직|결혼합니다|결혼식을\s*올|화촉을\s*밝|하나가\s*되는|평생을\s*함께|소중한\s*분들을\s*모시고|자리를\s*빛내)/.test(line)) {
+      weddingGreetingLines.push(line);
+      continue;
+    }
+
+    // 일반 알림/초대 문구 (청첩장 지참 안내 및 셔틀버스/예식 종료 안내 제외)
+    if (!noticeLine && !/당일부터\s*\d+일/.test(line) && !/종료\s*후.*출발/.test(line) && !/지참|출입을\s*위해/.test(line) && /(별세|알려드립니다|모시고자|결혼식을|화촉을|소천|취임하게\s*되어|취임을\s*맞이하여|개최하고자|초대합니다|빛내주시면|감사하겠습니다|바랍니다|부탁드립니다|환영합니다)/.test(line) && line !== '별세' && !/^[\*\-\•\▶\▷\▸\◆\◇\■\□\●\○\※\★\☆]?\s*별세\s*[:\-]/.test(line)) {
+      noticeLine = line.replace(/^[\*\-\•\▶\▷\▸\◆\◇\■\□\●\○\※\★\☆]?\s*(?:제목\s*[:\-]?\s*)?/, '').trim();
+      continue;
+    }
+
+    if (isFuneral) {
+      if (!deceasedName && (/님\s*\d+세/.test(line) || /^故\s*[가-힣]{2,5}/.test(line) || (i < 5 && /[가-힣]{2,4}\s*님/.test(line)))) {
+        deceasedName = line;
+        continue;
+      }
+      if (!targetInfo && /\d+\s*세/.test(line) && /(남성|여성|님|남|여)/.test(line)) {
+        targetInfo = line;
+        continue;
+      }
+    } else if (isInauguration) {
+      if (/(취임식|이·취임식|이취임식|청년회|라이온스|로타리|JC|특우회|향우회|동창회|총동문회|기념식|취임)/.test(line) && eventTitleLines.length < 2 && !/^(일\s*시|장\s*소|일시|장소|취임회장|신임회장|이임회장|취임자|주최|주관)/.test(line)) {
+        eventTitleLines.push(line.replace(/^제목\s*[:\-]?\s*/, ''));
+        continue;
+      }
+    }
+
+    // 장소 및 주소
+    var isParkingOrBusLine = /주차장|주차\s*안내|교회\s*앞\s*뒤|셔틀|전세버스|종료\s*후.*출발|지참해주시기/.test(line);
+    var cleanLocLabel = line.replace(/^[\*\-\•\▶\▷\▸\◆\◇\■\□\●\○\※\★\☆]\s*/, '').replace(/\s*[:\-]$/, '').replace(/\s+/g, '').trim();
+    if (!isParkingOrBusLine && /^(빈소|예식장|장소|행사장|회관)$/.test(cleanLocLabel) && i + 1 < lines.length) {
+      flushMournerGroup();
+      var nextVenue = lines[++i];
+      if (nextVenue === '장례식장' && i + 1 < lines.length) {
+        nextVenue = lines[++i];
+      }
+      if (!venueName || nextVenue.length > venueName.length) {
+        venueName = nextVenue;
+      }
+      continue;
+    }
+    var sameLineLoc = !isParkingOrBusLine && line.match(/^[\*\-\•\▶\▷\▸\◆\◇\■\□\●\○\※\★\☆]?\s*(?:빈\s*소|예\s*식\s*장|장\s*소|행\s*사\s*장)\s*[:\-]\s*(.+)$/);
+    if (sameLineLoc) {
+      flushMournerGroup();
+      var locVal = sameLineLoc[1].trim();
+      if (!venueName || locVal.length > venueName.length) {
+        venueName = locVal;
+      }
+      continue;
+    }
+    if (!isParkingOrBusLine && /^[\*\-\•]?\s*주\s*소\s*[:\-]?$/.test(line) && i + 1 < lines.length) {
+      flushMournerGroup();
+      venueAddr = lines[++i];
+      continue;
+    }
+    if (!isParkingOrBusLine && /(장례식장|빈소|웨딩|호텔|컨벤션|뷔페|복지회관|면사무소|읍사무소|구민회관|시민회관|문화센터|교회\s*본당|성당|채플|아트홀|그랜드홀|컨벤션홀|연회장|회관|플라자|가든|하우스|빌라|타워|팰리스|센터)/.test(line) && !/(발인|입관|장지|별세|화장장|일시|일\s*시)/.test(line)) {
+      var addrMatch = line.match(/(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주|특별시|광역시|특별자치|경상남도|경상북도|전라남도|전라북도|충청남도|충청북도).*$/);
+      if (addrMatch && line.indexOf(addrMatch[0]) > 0) {
+        var vPart = line.slice(0, line.indexOf(addrMatch[0])).trim();
+        var aPart = addrMatch[0].trim();
+        if (!venueName || vPart.length > venueName.length) venueName = vPart;
+        if (!venueAddr) venueAddr = aPart;
+      } else {
+        var cleanedVenue = line.replace(/^[\*\-\•\▶\▷\▸\◆\◇\■\□\●\○\※\★\☆]?\s*(빈소|장소|예식장)\s*[:\-]?\s*/, '').trim();
+        if (cleanedVenue && cleanedVenue !== '장례식장' && cleanedVenue !== '빈소') {
+          if (!venueName || cleanedVenue.length > venueName.length) {
+            venueName = cleanedVenue;
+          }
+        }
+      }
+      continue;
+    }
+    if (!isParkingOrBusLine && !venueAddr && (/^[\*\-\•]?\s*주\s*소/.test(line) || /(특별시|광역시|특별자치|경상|전라|충청|서울\s+[가-힣]+구|부산\s+[가-힣]+구|시\s+[가-힣]+구|시\s+[가-힣]+동|시\s+[가-힣]+로|군\s+[가-힣]+읍|면\s+[가-힣]+로|면\s+[가-힣]+길|구\s+[가-힣]+로|구\s+[가-힣]+길)/.test(line))) {
+      var cleanedAddr2 = line.replace(/^[\*\-\•]?\s*주\s*소\s*[:\-]?\s*/, '').trim();
+      if (cleanedAddr2 !== venueName) {
+        venueAddr = cleanedAddr2;
+        continue;
+      }
+    }
+    if (section === 'location' && !venueName && !isParkingOrBusLine && line.length <= 35 && !bankRegex.test(line) && !/\d{6,}/.test(line)) {
+      venueName = line;
+      continue;
+    }
+
+    // 일정
+    var isBulletLine = /^[\*\-\•\▶\▷\▸\◆\◇\■\□\●\○\※\★\☆]/.test(line);
+    var cleanLabel = line.replace(/^[\*\-\•\▶\▷\▸\◆\◇\■\□\●\○\※\★\☆]\s*/, '').replace(/\s*[:\-]$/, '').trim();
+    var normalizedSchedLabel = cleanLabel.replace(/\s+/g, '');
+    if (!isParkingOrBusLine && (scheduleLabels.indexOf(cleanLabel) !== -1 || scheduleLabels.indexOf(normalizedSchedLabel) !== -1)) {
+      flushMournerGroup();
+      section = 'schedule';
+      if (i + 1 < lines.length) {
+        var nextCandidate = lines[i + 1].replace(/^[\*\-\•\▶\▷\▸\◆\◇\■\□\●\○\※\★\☆]\s*/, '').replace(/\s*[:\-]$/, '').trim();
+        if (scheduleLabels.indexOf(nextCandidate) !== -1 || scheduleLabels.indexOf(nextCandidate.replace(/\s+/g, '')) !== -1) {
+          continue;
+        }
+        var nextVal = lines[i + 1].replace(/^[:\-]\s*/, '').trim();
+        var displayLabel = (cleanLabel.indexOf('장지') !== -1) ? '장지' : normalizedSchedLabel;
+        schedules.push(displayLabel + ' : ' + nextVal);
+        i++;
+        continue;
+      }
+    }
+    var sameLineSched = !isParkingOrBusLine && !/당일부터\s*\d+일/.test(line) && findMatchingItem(scheduleLabels, function(lbl) {
+      var re = new RegExp('^[\\*\\-\\•\\▶\\▷\\▸\\◆\\◇\\■\\□\\●\\○\\※\\★\\☆]?\\s*' + lbl.replace('/', '\\/') + '(?:\\s*[:\\-]\\s*|\\s+)(.+)$');
+      return re.test(line);
+    });
+    if (sameLineSched) {
+      flushMournerGroup();
+      section = 'schedule';
+      var val = line.replace(new RegExp('^[\\*\\-\\•\\▶\\▷\\▸\\◆\\◇\\■\\□\\●\\○\\※\\★\\☆]?\\s*' + sameLineSched.replace('/', '\\/') + '(?:\\s*[:\\-]\\s*|\\s+)'), '').trim();
+      var dispLbl = (sameLineSched.indexOf('장지') !== -1) ? '장지' : sameLineSched.replace(/\s+/g, '');
+      schedules.push(dispLbl + ' : ' + val);
+      continue;
+    }
+    if (!isParkingOrBusLine && schedules.length === 0 && (
+        /^(?:\d{4}년\s*)?\d{1,2}월\s*\d{1,2}일.*(?:\d{1,2}시|\d{1,2}:\d{2})/.test(line) ||
+        /^\d{4}[\.\-\/]\d{1,2}[\.\-\/]\d{1,2}.*\d{1,2}:\d{2}/.test(line) ||
+        /^(?:월요일|화요일|수요일|목요일|금요일|토요일|일요일)\s*(?:오전|오후|낮)?\s*\d{1,2}시/.test(line)
+    )) {
+      flushMournerGroup();
+      section = 'schedule';
+      schedules.push('일시 : ' + line);
+      continue;
+    }
+
+    // 상주 / 취임자 명단
+    if (!isWedding && section !== 'account' && section !== 'schedule' && section !== 'location') {
+      if (!isBulletLine && roles.indexOf(cleanLabel) !== -1) {
+        flushMournerGroup();
+        section = 'mourner';
+        currentMournerRole = cleanLabel;
+        continue;
+      }
+      var matchedRole = findMatchingItem(roles, function(r) {
+        var reRole = new RegExp('^' + r + '(?:\\s*[:\\-]\\s*|\\s+)(.+)$');
+        return reRole.test(line);
+      });
+      if (matchedRole) {
+        flushMournerGroup();
+        section = 'mourner';
+        currentMournerRole = matchedRole;
+        var rest = fixNames(line.replace(new RegExp('^' + matchedRole + '(?:\\s*[:\\-]\\s*|\\s+)'), '').trim());
+        if (rest) currentMournerNames.push(rest);
+        continue;
+      }
+      if (section === 'mourner' && currentMournerRole) {
+        var isNotOtherSection = !/(장례식장|빈소|발인|입관|장지|화장장|일시|장소|오시는|교통정보|계좌|은행|감사합니다|초대합니다|모시고자|빛내주시면|바랍니다|\d{3,})/.test(line);
+        if (isNotOtherSection) {
+          currentMournerNames.push(fixNames(line));
+          continue;
+        }
+      }
+    }
+
+    // 계좌 처리 (핵심 버그 수정: 계좌번호 중간의 '02-' 등을 전화번호로 오인하지 않도록 정확한 전화번호 형식만 제외!)
+    var isVenueOrTrafficLine = /(장례식장|빈소|VIP|호실|웨딩|호텔|컨벤션|오시는|교통정보|주소|Tel|전화|팩스|맵으로|새창열림|지도|북성로|내일동|창밀로|광복로|남부순환로|주차장)/i.test(line);
+    var isActualPhone = /(?:^|[^\d\-])(?:010|011|02|031|032|033|041|042|043|044|051|052|053|054|055|061|062|063|064)-\d{3,4}-\d{4}(?:$|[^\d\-])/.test(line);
+    var isDateLine = /(발인|입관|별세|일시|날짜|2025\.|2026\.|2027\.|\d{4}년)/.test(line);
+    var hasBank = !isVenueOrTrafficLine && !isActualPhone && bankRegex.test(line);
+    var hasAccNum = !isVenueOrTrafficLine && !isActualPhone && !isDateLine && (/\d{2,6}[\-\s]\d{2,6}[\-\s]\d{2,7}/.test(line) || /\d{10,14}/.test(line));
+
+    if (!isDateLine && !isActualPhone && (hasBank || hasAccNum)) {
+      var cleanAcc = line
+        .replace(/^[\-\*\•]\s*/, '')
+        .replace(/(복사|계좌복사|계좌\s*복사|예금주\s*[:\-]|은행명\s*[:\-]?|계좌번호\s*[:\-]?)/g, '')
+        .replace(/\s*\/\s*/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (cleanAcc && !isVenueOrTrafficLine) {
+        accounts.push(cleanAcc);
+      }
+    }
+  }
+  flushMournerGroup();
+
+  // 계좌 줄 병합 (양방향 지원: '은행+이름 -> 계좌번호' 및 '계좌번호 -> 은행+이름' 모두 완벽 결합!)
+  var mergedAccounts = [];
+  var seenAccNums = [];
+
+  for (var aIdx = 0; aIdx < accounts.length; aIdx++) {
+    var cur = accounts[aIdx];
+    var curDigits = cur.replace(/\D/g, '');
+    var curHasNum = curDigits.length >= 9;
+    var curHasBank = bankRegex.test(cur);
+
+    // 1) 한 줄에 은행+이름+계좌번호가 다 있는 경우
+    if (curHasNum && curHasBank) {
+      if (seenAccNums.indexOf(curDigits) === -1) {
+        seenAccNums.push(curDigits);
+        mergedAccounts.push(cur);
+      }
+      continue;
+    }
+
+    // 2) 현재 줄이 순수 계좌번호('519702-01-240116')이고, 다음 줄이 은행+이름('국민은행 최다빈')인 경우 -> '국민은행 최다빈 519702-01-240116'
+    if (curHasNum && !curHasBank) {
+      if (aIdx + 1 < accounts.length && bankRegex.test(accounts[aIdx + 1]) && accounts[aIdx + 1].replace(/\D/g, '').length < 9) {
+        var combined1 = accounts[aIdx + 1] + ' ' + cur;
+        if (seenAccNums.indexOf(curDigits) === -1) {
+          seenAccNums.push(curDigits);
+          mergedAccounts.push(combined1);
+        }
+        aIdx++;
+        continue;
+      } else {
+        if (seenAccNums.indexOf(curDigits) === -1) {
+          seenAccNums.push(curDigits);
+          mergedAccounts.push(cur);
+        }
+        continue;
+      }
+    }
+
+    // 3) 현재 줄이 은행+이름('이시행 KB 국민은행')이고, 다음 줄이 순수 계좌번호('552401-01-139241')인 경우 -> '이시행 KB 국민은행 552401-01-139241'
+    if (curHasBank && !curHasNum) {
+      if (aIdx + 1 < accounts.length) {
+        var nextDigits = accounts[aIdx + 1].replace(/\D/g, '');
+        if (nextDigits.length >= 9 && !bankRegex.test(accounts[aIdx + 1])) {
+          var combined2 = cur + ' ' + accounts[aIdx + 1];
+          if (seenAccNums.indexOf(nextDigits) === -1) {
+            seenAccNums.push(nextDigits);
+            mergedAccounts.push(combined2);
+          }
+          aIdx++;
+          continue;
+        }
+      }
+      if (mergedAccounts.indexOf(cur) === -1) {
+        mergedAccounts.push(cur);
+      }
+    }
+  }
+
+  var finalNotice = (isWedding && weddingGreetingLines.length > 0) ? weddingGreetingLines.join('\n') : noticeLine;
+  return { isFuneral: isFuneral, isWedding: isWedding, isInauguration: isInauguration, deceasedName: deceasedName, targetInfo: targetInfo,
+    notice: finalNotice, eventTitleLines: eventTitleLines, venueName: venueName, venueAddr: venueAddr, mourners: mourners, weddingHosts: weddingHosts,
+    schedules: schedules, accounts: mergedAccounts, bankRegex: bankRegex, full: full };
+}
+
+function toData(r, raw) {
+  var d = { '종류': r.isFuneral ? '부고' : (r.isInauguration ? (/(개업|창립|오픈)/.test(r.full) && !/취임/.test(r.full) ? '개업' : '취임') : '결혼'), '인사말': '', '일시': '', '정렬용날짜': '',
+    '장소': { '이름': r.venueName || '', '홀': '', '주소': r.venueAddr || '' }, '계좌': [], '연락처': [], '메모': '', '확인필요': ['AI 없이 규칙으로 정리했어요 — 칸마다 꼭 확인해 주세요'],
+    '결혼': {}, '부고': { '빈소': {}, '상주': [] }, '개업취임': {} };
+  var other = [];
+  r.schedules.forEach(function(s) {
+    var m = s.match(/^([^:]+?)\s*:\s*(.*)$/); if (!m) return;
+    var k = m[1].replace(/\s+/g, ''), v = m[2].trim();
+    if (/발인/.test(k)) d['부고']['발인'] = v; else if (/장지|화장장/.test(k)) d['부고']['장지'] = v;
+    else if (/일시|날짜|예식|시간/.test(k) && !d['일시']) d['일시'] = v; else other.push(k + ' : ' + v);
+  });
+  if (other.length) d['메모'] = other.join('\n');
+  var dm = (d['일시'] || d['부고']['발인'] || '').match(/(?:(\d{4})\s*[년.\-\/]\s*)?(\d{1,2})\s*[월.\-\/]\s*(\d{1,2})/);
+  if (dm) { var y = dm[1] ? Number(dm[1]) : new Date().getFullYear(), mo = Number(dm[2]), da = Number(dm[3]); if (!dm[1] && new Date(y, mo - 1, da) < new Date(Date.now() - 30 * 86400000)) y++; d['정렬용날짜'] = y + '-' + ('0' + mo).slice(-2) + '-' + ('0' + da).slice(-2); if (!dm[1]) d['확인필요'].push('연도 확인'); }
+  if (r.isFuneral) {
+    var who = [r.deceasedName, r.targetInfo, r.notice].join(' ');
+    var nm = who.match(/故\s*([가-힣]{2,4}?)(?:님|\s|께서|$)/) || who.match(/([가-힣]{2,4}?)\s*님/) || (r.notice || '').match(/故\s*([가-힣]{2,4}?)(?:님|\s|께서|$)/);
+    d['부고']['고인'] = nm ? nm[1] : '';
+    var age = who.match(/(\d{2,3})\s*세/); if (age) d['부고']['향년'] = age[1] + '세';
+    d['부고']['별세문구'] = r.notice || '';
+    d['부고']['빈소'] = { '이름': r.venueName || '', '호실': '', '주소': r.venueAddr || '' };
+    d['부고']['상주'] = r.mourners.map(function(x) { var p = x.split(/[　\s]+/); return { '관계': p.shift(), '이름': p.join(' ') }; });
+    if (!d['부고']['고인']) d['확인필요'].push('고인 성함');
+  } else if (r.isWedding) {
+    d['인사말'] = r.notice || '';
+    r.weddingHosts.forEach(function(h) {
+      var m = h.match(/^(신랑|신부)[　\s]+([가-힣]{2,4})(?:\s*\((.+)\))?/); if (!m) return;
+      d['결혼'][m[1]] = m[2];
+      var par = m[3] || '', pm = par.match(/^(.+?)의\s*(\S+)$/);
+      if (pm) { var ps = pm[1].split(/[·•.]/); d['결혼'][m[1] + '아버지'] = (ps[0] || '').trim(); d['결혼'][m[1] + '어머니'] = (ps[1] || '').trim(); d['결혼'][m[1] + '관계'] = pm[2]; }
+    });
+    if (!d['결혼']['신랑'] || !d['결혼']['신부']) d['확인필요'].push('신랑·신부 이름');
+  } else {
+    d['인사말'] = r.notice || '';
+    d['개업취임'] = { '상호단체': r.eventTitleLines.join(' '), '이름': '', '직책': '', '행사일시': d['일시'], '행사장소': [r.venueName, r.venueAddr].filter(Boolean).join(' ') };
+  }
+  r.accounts.forEach(function(a) {
+    var num = (a.match(/\d[\d\-\s]{7,}\d/) || [''])[0].trim();
+    var bank = (a.match(r.bankRegex) || [''])[0];
+    var rest = a.replace(num, ' ').replace(bank, ' ').replace(/(KB|NH|IBK)/g, ' ').trim();
+    var side = /신부/.test(rest) ? '신부측' : /신랑/.test(rest) ? '신랑측' : (r.isFuneral ? '상주측' : '');
+    var rel = (rest.match(/(신랑|신부)?\s*(아버지|어머니|부친|모친|혼주|본인)/) || [''])[0].trim();
+    var name = rest.replace(/(신랑|신부|측|아버지|어머니|부친|모친|혼주|본인|예금주|[:\-\/|])/g, ' ').trim().split(/\s+/).filter(function(t) { return /^[가-힣]{2,4}$/.test(t); })[0] || '';
+    d['계좌'].push({ '구분': side, '관계': rel, '은행': bank, '계좌번호': num, '예금주': name });
+  });
+  return d;
+}
+window.gjRuleParse = function(raw, kind) {
+  var forced = { '부고': 'funeral', '결혼': 'wedding', '취임': 'inauguration', '개업': 'inauguration' }[kind] || 'auto';
+  var r = convertText(raw, forced);
+  return toData(r, raw);
+};
+})();
+
 /* 오늘업무의 '🖨 경조사 인쇄' 단발업무: [🖨 인쇄] [인쇄 완료] 버튼 */
 function gjTodoFileId(t){ var p = t && t.progress; if (!Array.isArray(p)) return ''; for (var i = 0; i < p.length; i++) if (p[i] && p[i].gj) return p[i].gj; return ''; }
 </script>
 
+<script>
+/* [§36-C] 계산서·영수증 사진 정리 (v7 '탭 2'를 옮김: 회전·자르기·선명하게 → A4에 2장씩 인쇄) */
+(function(){
+/* 탭 2: 계산서 · 영수증 사진 편집 로직 */
+var canvas = document.getElementById('rcCanvas');
+var ctx = canvas.getContext('2d');
+var originalImg = null;
+var workingCanvas = document.createElement('canvas');
+var workingCtx = workingCanvas.getContext('2d');
+var historyStack = [];
+var isEnhanced = false;
+
+var cropRect = { x: 0, y: 0, w: 0, h: 0 };
+var isCropActive = false;
+var isDragging = false;
+var dragMode = null;
+var dragStartX = 0, dragStartY = 0;
+var initialCrop = { x: 0, y: 0, w: 0, h: 0 };
+var handleSize = 22;
+
+var a4Items = [];
+
+function pushHistory() {
+  if (!workingCanvas.width) return;
+  historyStack.push(workingCanvas.toDataURL('image/png'));
+  if (historyStack.length > 15) historyStack.shift();
+}
+
+function rc_undoImage() {
+  if (historyStack.length === 0) {
+    showToast('되돌릴 이전 작업 내역이 없습니다.');
+    return;
+  }
+  var prevUrl = historyStack.pop();
+  var img = new Image();
+  img.onload = function() {
+    workingCanvas.width = img.width;
+    workingCanvas.height = img.height;
+    workingCtx.clearRect(0, 0, img.width, img.height);
+    workingCtx.drawImage(img, 0, 0);
+    initFullCropBox();
+    renderEditorCanvas();
+  };
+  img.src = prevUrl;
+}
+
+function initFullCropBox() {
+  cropRect = {
+    x: 0,
+    y: 0,
+    w: workingCanvas.width,
+    h: workingCanvas.height
+  };
+  isCropActive = true;
+}
+
+function rc_handleFileSelect(e) {
+  var file = e.target.files[0];
+  if (file) rc_loadImageFile(file);
+}
+
+var dropZone = document.getElementById('rcDrop');
+dropZone.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', function() {
+  dropZone.classList.remove('dragover');
+});
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    rc_loadImageFile(e.dataTransfer.files[0]);
+  }
+});
+
+window.addEventListener('paste', function(e) {
+  var clipboardData = e.clipboardData || e.originalEvent.clipboardData;
+  if (!clipboardData || !clipboardData.items) return;
+  var items = clipboardData.items;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') === 0) {
+      var file = items[i].getAsFile();
+      if (!gjTabIs('rc')) { if (gjTabIs('gj') && typeof gjAddPhotos === 'function') { gjAddPhotos([file]); e.preventDefault(); } return; }
+      rc_loadImageFile(file);
+      e.preventDefault();
+      break;
+    }
+  }
+});
+
+function rc_loadImageFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    var img = new Image();
+    img.onload = function() {
+      originalImg = img;
+      historyStack = [];
+      isEnhanced = false;
+      document.getElementById('rcEnhance').classList.remove('highlight');
+      setWorkingFromImage(img);
+    };
+    img.src = evt.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setWorkingFromImage(img) {
+  workingCanvas.width = img.width;
+  workingCanvas.height = img.height;
+  workingCtx.drawImage(img, 0, 0);
+
+  cropRect = {
+    x: Math.round(img.width * 0.06),
+    y: Math.round(img.height * 0.06),
+    w: Math.round(img.width * 0.88),
+    h: Math.round(img.height * 0.88)
+  };
+  isCropActive = true;
+  renderEditorCanvas();
+}
+
+function renderEditorCanvas() {
+  if (!workingCanvas.width) return;
+
+  var maxW = 740;
+  var maxH = 520;
+  var ratio = Math.min(maxW / workingCanvas.width, maxH / workingCanvas.height, 1);
+  canvas.width = Math.round(workingCanvas.width * ratio);
+  canvas.height = Math.round(workingCanvas.height * ratio);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(workingCanvas, 0, 0, canvas.width, canvas.height);
+
+  if (isCropActive) {
+    var rx = Math.round(cropRect.x * ratio);
+    var ry = Math.round(cropRect.y * ratio);
+    var rw = Math.round(cropRect.w * ratio);
+    var rh = Math.round(cropRect.h * ratio);
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.52)';
+    ctx.fillRect(0, 0, canvas.width, ry);
+    ctx.fillRect(0, ry, rx, rh);
+    ctx.fillRect(rx + rw, ry, canvas.width - (rx + rw), rh);
+    ctx.fillRect(0, ry + rh, canvas.width, canvas.height - (ry + rh));
+
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(rx, ry, rw, rh);
+
+    var hs2 = handleSize / 2;
+    var handles = [
+      { x: rx, y: ry },
+      { x: rx + rw / 2, y: ry },
+      { x: rx + rw, y: ry },
+      { x: rx + rw, y: ry + rh / 2 },
+      { x: rx + rw, y: ry + rh },
+      { x: rx + rw / 2, y: ry + rh },
+      { x: rx, y: ry + rh },
+      { x: rx, y: ry + rh / 2 }
+    ];
+
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#1d4ed8';
+    ctx.lineWidth = 2;
+    for (var hi = 0; hi < handles.length; hi++) {
+      var h = handles[hi];
+      ctx.fillRect(h.x - hs2, h.y - hs2, handleSize, handleSize);
+      ctx.strokeRect(h.x - hs2, h.y - hs2, handleSize, handleSize);
+    }
+  }
+}
+
+function getHandleAt(mx, my, rx, ry, rw, rh) {
+  var tol = handleSize + 4;
+  if (Math.abs(mx - rx) <= tol && Math.abs(my - ry) <= tol) return 'nw';
+  if (Math.abs(mx - (rx + rw / 2)) <= tol && Math.abs(my - ry) <= tol) return 'n';
+  if (Math.abs(mx - (rx + rw)) <= tol && Math.abs(my - ry) <= tol) return 'ne';
+  if (Math.abs(mx - (rx + rw)) <= tol && Math.abs(my - (ry + rh / 2)) <= tol) return 'e';
+  if (Math.abs(mx - (rx + rw)) <= tol && Math.abs(my - (ry + rh)) <= tol) return 'se';
+  if (Math.abs(mx - (rx + rw / 2)) <= tol && Math.abs(my - (ry + rh)) <= tol) return 's';
+  if (Math.abs(mx - rx) <= tol && Math.abs(my - (ry + rh)) <= tol) return 'sw';
+  if (Math.abs(mx - rx) <= tol && Math.abs(my - (ry + rh / 2)) <= tol) return 'w';
+
+  if (mx > rx && mx < rx + rw && my > ry && my < ry + rh) return 'move';
+  return 'new';
+}
+
+function updateCursorStyle(mode) {
+  var map = {
+    'nw': 'nwse-resize', 'se': 'nwse-resize',
+    'ne': 'nesw-resize', 'sw': 'nesw-resize',
+    'n': 'ns-resize', 's': 'ns-resize',
+    'w': 'ew-resize', 'e': 'ew-resize',
+    'move': 'move', 'new': 'crosshair'
+  };
+  canvas.style.cursor = map[mode] || 'default';
+}
+
+canvas.addEventListener('pointerdown', function(e) {
+  try { canvas.setPointerCapture(e.pointerId); } catch (eP) {}
+  e.preventDefault();
+  if (!workingCanvas.width) return;
+  var rect = canvas.getBoundingClientRect();
+  var mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  var my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+  var ratio = canvas.width / workingCanvas.width;
+  var rx = Math.round(cropRect.x * ratio);
+  var ry = Math.round(cropRect.y * ratio);
+  var rw = Math.round(cropRect.w * ratio);
+  var rh = Math.round(cropRect.h * ratio);
+
+  if (!isCropActive) {
+    isCropActive = true;
+    cropRect = { x: Math.round(mx / ratio), y: Math.round(my / ratio), w: 40, h: 40 };
+    dragMode = 'se';
+  } else {
+    dragMode = getHandleAt(mx, my, rx, ry, rw, rh);
+    if (dragMode === 'new') {
+      cropRect = { x: Math.round(mx / ratio), y: Math.round(my / ratio), w: 20, h: 20 };
+      dragMode = 'se';
+    }
+  }
+
+  isDragging = true;
+  dragStartX = mx;
+  dragStartY = my;
+  initialCrop = { x: cropRect.x, y: cropRect.y, w: cropRect.w, h: cropRect.h };
+});
+
+canvas.addEventListener('pointermove', function(e) {
+  if (!workingCanvas.width) return;
+  var rect = canvas.getBoundingClientRect();
+  var mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  var my = (e.clientY - rect.top) * (canvas.height / rect.height);
+  var ratio = canvas.width / workingCanvas.width;
+
+  if (!isDragging) {
+    if (isCropActive) {
+      var rx = Math.round(cropRect.x * ratio);
+      var ry = Math.round(cropRect.y * ratio);
+      var rw = Math.round(cropRect.w * ratio);
+      var rh = Math.round(cropRect.h * ratio);
+      updateCursorStyle(getHandleAt(mx, my, rx, ry, rw, rh));
+    }
+    return;
+  }
+
+  var dx = (mx - dragStartX) / ratio;
+  var dy = (my - dragStartY) / ratio;
+  var c = { x: initialCrop.x, y: initialCrop.y, w: initialCrop.w, h: initialCrop.h };
+
+  if (dragMode === 'move') {
+    c.x = Math.max(0, Math.min(workingCanvas.width - c.w, initialCrop.x + dx));
+    c.y = Math.max(0, Math.min(workingCanvas.height - c.h, initialCrop.y + dy));
+  } else if (dragMode === 'se') {
+    c.w = Math.max(30, initialCrop.w + dx);
+    c.h = Math.max(30, initialCrop.h + dy);
+  } else if (dragMode === 'nw') {
+    var newX = Math.max(0, Math.min(initialCrop.x + initialCrop.w - 30, initialCrop.x + dx));
+    var newY = Math.max(0, Math.min(initialCrop.y + initialCrop.h - 30, initialCrop.y + dy));
+    c.w = initialCrop.w - (newX - initialCrop.x);
+    c.h = initialCrop.h - (newY - initialCrop.y);
+    c.x = newX;
+    c.y = newY;
+  } else if (dragMode === 'ne') {
+    var newY2 = Math.max(0, Math.min(initialCrop.y + initialCrop.h - 30, initialCrop.y + dy));
+    c.w = Math.max(30, initialCrop.w + dx);
+    c.h = initialCrop.h - (newY2 - initialCrop.y);
+    c.y = newY2;
+  } else if (dragMode === 'sw') {
+    var newX2 = Math.max(0, Math.min(initialCrop.x + initialCrop.w - 30, initialCrop.x + dx));
+    c.w = initialCrop.w - (newX2 - initialCrop.x);
+    c.h = Math.max(30, initialCrop.h + dy);
+    c.x = newX2;
+  } else if (dragMode === 'n') {
+    var newY3 = Math.max(0, Math.min(initialCrop.y + initialCrop.h - 30, initialCrop.y + dy));
+    c.h = initialCrop.h - (newY3 - initialCrop.y);
+    c.y = newY3;
+  } else if (dragMode === 's') {
+    c.h = Math.max(30, initialCrop.h + dy);
+  } else if (dragMode === 'w') {
+    var newX3 = Math.max(0, Math.min(initialCrop.x + initialCrop.w - 30, initialCrop.x + dx));
+    c.w = initialCrop.w - (newX3 - initialCrop.x);
+    c.x = newX3;
+  } else if (dragMode === 'e') {
+    c.w = Math.max(30, initialCrop.w + dx);
+  }
+
+  if (c.x + c.w > workingCanvas.width) c.w = workingCanvas.width - c.x;
+  if (c.y + c.h > workingCanvas.height) c.h = workingCanvas.height - c.y;
+
+  cropRect = c;
+  renderEditorCanvas();
+});
+
+window.addEventListener('pointerup', function() {
+  if (isDragging) {
+    isDragging = false;
+    dragMode = null;
+  }
+});
+
+function rc_rotateImage(deg) {
+  if (!workingCanvas.width) {
+    showToast('먼저 계산서 사진을 불러와 주세요!');
+    return;
+  }
+  pushHistory();
+  var tempCanvas = document.createElement('canvas');
+  var tempCtx = tempCanvas.getContext('2d');
+
+  if (deg === 90 || deg === -90) {
+    tempCanvas.width = workingCanvas.height;
+    tempCanvas.height = workingCanvas.width;
+    tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+    tempCtx.rotate((deg * Math.PI) / 180);
+    tempCtx.drawImage(workingCanvas, -workingCanvas.width / 2, -workingCanvas.height / 2);
+  } else if (deg === 180) {
+    tempCanvas.width = workingCanvas.width;
+    tempCanvas.height = workingCanvas.height;
+    tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+    tempCtx.rotate(Math.PI);
+    tempCtx.drawImage(workingCanvas, -workingCanvas.width / 2, -workingCanvas.height / 2);
+  }
+
+  workingCanvas.width = tempCanvas.width;
+  workingCanvas.height = tempCanvas.height;
+  workingCtx.drawImage(tempCanvas, 0, 0);
+
+  cropRect = {
+    x: Math.round(workingCanvas.width * 0.05),
+    y: Math.round(workingCanvas.height * 0.05),
+    w: Math.round(workingCanvas.width * 0.9),
+    h: Math.round(workingCanvas.height * 0.9)
+  };
+  isCropActive = true;
+  renderEditorCanvas();
+}
+
+function rc_rotateFree(deg) {
+  if (!workingCanvas.width) {
+    showToast('먼저 계산서 사진을 불러와 주세요!');
+    return;
+  }
+  pushHistory();
+  var rad = (deg * Math.PI) / 180;
+  var tempCanvas = document.createElement('canvas');
+  var tempCtx = tempCanvas.getContext('2d');
+  tempCanvas.width = workingCanvas.width;
+  tempCanvas.height = workingCanvas.height;
+  tempCtx.fillStyle = '#ffffff';
+  tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+  tempCtx.rotate(rad);
+  tempCtx.drawImage(workingCanvas, -workingCanvas.width / 2, -workingCanvas.height / 2);
+
+  workingCtx.clearRect(0, 0, workingCanvas.width, workingCanvas.height);
+  workingCtx.drawImage(tempCanvas, 0, 0);
+  renderEditorCanvas();
+}
+
+function rc_cropSelectedArea() {
+  if (!workingCanvas.width) {
+    showToast('먼저 계산서 사진을 불러와 주세요!');
+    return;
+  }
+  if (!isCropActive || cropRect.w < 20 || cropRect.h < 20) {
+    showToast('자르기 영역을 올바르게 지정해 주세요!');
+    return;
+  }
+  pushHistory();
+
+  var rx = Math.round(cropRect.x);
+  var ry = Math.round(cropRect.y);
+  var rw = Math.round(cropRect.w);
+  var rh = Math.round(cropRect.h);
+
+  var tempCanvas = document.createElement('canvas');
+  tempCanvas.width = rw;
+  tempCanvas.height = rh;
+  tempCanvas.getContext('2d').drawImage(workingCanvas, rx, ry, rw, rh, 0, 0, rw, rh);
+
+  workingCanvas.width = rw;
+  workingCanvas.height = rh;
+  workingCtx.drawImage(tempCanvas, 0, 0);
+
+  initFullCropBox();
+  renderEditorCanvas();
+}
+
+function rc_toggleEnhance() {
+  if (!workingCanvas.width) {
+    showToast('먼저 계산서 사진을 불러와 주세요!');
+    return;
+  }
+  pushHistory();
+  var imgData = workingCtx.getImageData(0, 0, workingCanvas.width, workingCanvas.height);
+  var d = imgData.data;
+
+  var contrast = 1.35;
+  var brightness = 18;
+  for (var i = 0; i < d.length; i += 4) {
+    d[i]   = Math.min(255, Math.max(0, (d[i] - 128) * contrast + 128 + brightness));
+    d[i+1] = Math.min(255, Math.max(0, (d[i+1] - 128) * contrast + 128 + brightness));
+    d[i+2] = Math.min(255, Math.max(0, (d[i+2] - 128) * contrast + 128 + brightness));
+  }
+  workingCtx.putImageData(imgData, 0, 0);
+  isEnhanced = true;
+  document.getElementById('rcEnhance').classList.add('highlight');
+  renderEditorCanvas();
+}
+
+function rc_resetImage() {
+  if (!originalImg) return;
+  historyStack = [];
+  isEnhanced = false;
+  document.getElementById('rcEnhance').classList.remove('highlight');
+  setWorkingFromImage(originalImg);
+}
+
+function rc_addToA4Sheet(sizeMode) {
+  if (!workingCanvas.width) {
+    showToast('먼저 계산서 사진을 불러와 주세요!');
+    return;
+  }
+  var sourceCanvas = workingCanvas;
+  if (isCropActive && (cropRect.x > 2 || cropRect.y > 2 || cropRect.w < workingCanvas.width - 4 || cropRect.h < workingCanvas.height - 4)) {
+    var rx = Math.round(cropRect.x);
+    var ry = Math.round(cropRect.y);
+    var rw = Math.round(cropRect.w);
+    var rh = Math.round(cropRect.h);
+    var subCanvas = document.createElement('canvas');
+    subCanvas.width = rw;
+    subCanvas.height = rh;
+    subCanvas.getContext('2d').drawImage(workingCanvas, rx, ry, rw, rh, 0, 0, rw, rh);
+    sourceCanvas = subCanvas;
+  }
+
+  var dataUrl = sourceCanvas.toDataURL('image/jpeg', 0.94);
+  a4Items.push({ dataUrl: dataUrl, size: sizeMode, fit: 'fill' });
+  renderA4Sheet();
+}
+
+function rc_toggleSlotFit(idx) {
+  a4Items[idx].fit = (a4Items[idx].fit === 'fill') ? 'contain' : 'fill';
+  renderA4Sheet();
+}
+
+function rc_removeA4Item(idx) {
+  a4Items.splice(idx, 1);
+  renderA4Sheet();
+}
+
+function rc_clearA4Sheet() {
+  a4Items = [];
+  renderA4Sheet();
+}
+
+function renderA4Sheet() {
+  var sheet = document.getElementById('rcSheet');
+  var printArea = document.getElementById('rcPrintArea') || document.createElement('div');
+  var badge = document.getElementById('rcBadge');
+
+  badge.textContent = '현재 ' + a4Items.length + '장 배치됨';
+  sheet.innerHTML = '';
+  printArea.innerHTML = '';
+
+  if (a4Items.length === 0) {
+    sheet.innerHTML =
+      '<div class="slot-empty-msg" id="rcEmpty">' +
+      '왼쪽에서 계산서 사진을 회전·자르기 한 뒤<br><br>' +
+      '<b>[➕ 오른쪽 A4 종이에 넣기]</b> 버튼을 누르면<br>' +
+      '여기에 실제 세금계산서 크기로 빈 공간 없이 꽉 차게 들어갑니다.<br><br>' +
+      '(A4 한 장에 위·아래로 2장까지 모아 인쇄할 수 있습니다!)' +
+      '</div>';
+    return;
+  }
+
+  for (var idx = 0; idx < a4Items.length; idx++) {
+    var item = a4Items[idx];
+    var fitClass = item.fit === 'fill' ? 'fit-fill' : 'fit-contain';
+    var fitLabel = item.fit === 'fill' ? '↔ 원본비율 보기' : '⬛ 칸에 꽉 채우기';
+
+    var slot = document.createElement('div');
+    slot.className = 'invoice-slot size-' + item.size;
+    slot.innerHTML =
+      '<div class="slot-controls">' +
+        '<button class="slot-btn" onclick="rc_toggleSlotFit(' + idx + ')">' + fitLabel + '</button>' +
+        '<button class="slot-btn del" onclick="rc_removeA4Item(' + idx + ')">✕ 삭제</button>' +
+      '</div>' +
+      '<img class="' + fitClass + '" src="' + item.dataUrl + '" alt="계산서 ' + (idx + 1) + '">';
+    sheet.appendChild(slot);
+
+    var pSlot = document.createElement('div');
+    pSlot.className = 'print-invoice-item size-' + item.size;
+    pSlot.innerHTML = '<img class="' + fitClass + '" src="' + item.dataUrl + '" alt="계산서 ' + (idx + 1) + '">';
+    printArea.appendChild(pSlot);
+  }
+}
+
+function rc_printInvoiceDoc() {
+  if (a4Items.length === 0 && workingCanvas.width) rc_addToA4Sheet('half');
+  if (a4Items.length === 0) { showToast('인쇄할 계산서 사진을 먼저 넣어주세요!'); return; }
+  var w = window.open('', '_blank');
+  if (!w) { showToast('팝업이 막혔어요. 브라우저에서 팝업을 허용해 주세요.'); return; }
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>계산서·영수증 인쇄</title><style>@page{size:A4 portrait;margin:8mm 10mm}body{margin:0}.it{width:100%;overflow:hidden;page-break-inside:avoid;margin-bottom:5mm}.half{height:136mm}.full{height:275mm}.it img{width:100%;height:100%;display:block}.fill{object-fit:fill}.contain{object-fit:contain}</style></head><body>' +
+    a4Items.map(function(it) { return '<div class="it ' + it.size + '"><img class="' + (it.fit === 'fill' ? 'fill' : 'contain') + '" src="' + it.dataUrl + '"></div>'; }).join('') +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script></body></html>';
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+(function(){ ctx.fillStyle = '#334155'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('위 [사진 열기]를 누르거나', canvas.width / 2, canvas.height / 2 - 14); ctx.fillText('PC에서는 카톡 사진 복사 후 Ctrl+V', canvas.width / 2, canvas.height / 2 + 16); })();
+
+window.rc_rotateImage = rc_rotateImage;
+window.rc_rotateFree = rc_rotateFree;
+window.rc_cropSelectedArea = rc_cropSelectedArea;
+window.rc_undoImage = rc_undoImage;
+window.rc_toggleEnhance = rc_toggleEnhance;
+window.rc_resetImage = rc_resetImage;
+window.rc_addToA4Sheet = rc_addToA4Sheet;
+window.rc_toggleSlotFit = rc_toggleSlotFit;
+window.rc_removeA4Item = rc_removeA4Item;
+window.rc_clearA4Sheet = rc_clearA4Sheet;
+window.rc_printInvoiceDoc = rc_printInvoiceDoc;
+window.rc_handleFileSelect = rc_handleFileSelect;
+window.rc_loadImageFile = rc_loadImageFile;
+})();
+</script>
 </body>
 </html>
