@@ -276,7 +276,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261126-1854';
+var APP_BUILD = '20261127-1333';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -11273,7 +11273,7 @@ var y = (it.transform && it.transform.length >= 6) ? Number(it.transform[5]) : N
 tokens.push({ x: x, y: y, text: s });
 });
 if (tokens.length === 0) return [];
-tokens.sort(function(a, b) { return a.y - b.y; });
+tokens.sort(function(a, b) { return b.y - a.y; });   // PDF는 아래쪽이 y=0 → 위에서 아래 순서로 (예전엔 거꾸로 읽혀 품목 순서가 뒤집혔음)
 var rows = [];
 tokens.forEach(function(tk) {
 if (rows.length === 0 || Math.abs(rows[rows.length - 1].y - tk.y) > 5.5) {
@@ -11295,7 +11295,7 @@ if (/H=\s*\d|합\s*계|품\s*명/.test(r.line)) bodyYs.push(r.y);
 if (headerYs.length > 0 && bodyYs.length > 0) {
 var avgH = headerYs.reduce(function(a, b) { return a + b; }, 0) / headerYs.length;
 var avgB = bodyYs.reduce(function(a, b) { return a + b; }, 0) / bodyYs.length;
-if (avgH > avgB) rows.reverse();
+if (avgH < avgB) rows.reverse();
 }
 return rows.map(function(r) { return r.line; });
 }
@@ -13046,6 +13046,10 @@ return { name: it.name || '', unit: it.unit || 'EA', qty: Number(it.qty) || 1, u
 portalExtractMeta = res;
 var rawWrap = document.getElementById('exRawWrap');
 if (rawWrap) { rawWrap.style.display = res.rawText ? 'block' : 'none'; rawWrap.open = !(res.items || []).length; document.getElementById('exRawText').textContent = res.rawText || ''; }
+if (!res.site) { (function() {   // 앱이 만든 파일 이름(종류-공급자-날짜-공사명-거래처.pdf)이면 공사명·거래처를 이름에서
+  var fm = String(file.name || '').replace(/\.[A-Za-z0-9]+$/, '').match(/^(?:견적서|거래명세서|발주서|송장)-[^-]+-(\d{8})-(.+)-([^-]+)$/);
+  if (fm) { res.site = fm[2]; if (!res.company) res.company = fm[3]; }
+})(); }
 document.getElementById('exSite').value = res.site || '';
 document.getElementById('exContact').value = [res.contactName, res.contactRole].filter(Boolean).join(' ');
 document.getElementById('exPhone').value = res.phone || '';
@@ -15836,7 +15840,7 @@ function v3DocFromExtract(id){
     var type = v3PendingDocType; v3PendingDocType = null;
     setTimeout(function(){
       if (!portalExtractItems.length) { var st = document.getElementById('exStatus'); showToast((st && st.innerText) || '⚠️ 품목을 찾지 못했어요. 더 선명한 사진으로 다시 해 주세요'); return; }
-      applyPortalExtractToDocWriter(); v3DocOpened = true; v3DocTab(type); v3SyncTitle(); v3RenderDocSrc();
+      window.__v3DirectApply = true; try { applyPortalExtractToDocWriter(); } finally { window.__v3DirectApply = false; } v3DocOpened = true; v3DocTab(type); v3SyncTitle(); v3RenderDocSrc();
       showToast('📄 파일에서 ' + portalExtractItems.length + '개 품목을 읽어 ' + V3_DOCNAME[type] + '에 넣었어요');
     }, 60);
   }).observe(ov, { attributes: true, attributeFilter: ['style'] });
@@ -16628,6 +16632,7 @@ function v3ChooseDocType(cb){
   applyPortalExtractToDocWriter = function(){
     if (!(window.portalExtractItems || []).length && typeof portalExtractItems !== 'undefined' && !portalExtractItems.length) return orig.apply(this, arguments);
     var self = this, args = arguments;
+    if (window.__v3DirectApply) return orig.apply(self, args);   // 문서관리 화면의 [파일에서 추출]: 지금 보고 있는 서류(거래명세서 등)에 바로 넣음 — 다시 묻지 않음
     if (window.__exiPurpose === 'TAX') {   // 추출함에서 '거래명세서 → 계산서 발행'을 고른 경우: 묻지 않고 거래명세서로
       orig.apply(self, args);
       setTimeout(function(){ try { v3DocTab('TAX'); } catch (e) {} try { if (typeof v3SyncTitle === 'function') v3SyncTitle(); } catch (e2) {} }, 80);
