@@ -277,7 +277,7 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261128-1637';
+var APP_BUILD = '20261128-1647';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -2105,7 +2105,7 @@ try { fetchInitialData(false); } catch (e) { ov.style.display = 'none'; }
 <div style="font-size:11.5px; color:#475569; margin-bottom:6px; line-height:1.45;">사장님이 카톡으로 보내 준 입금 문자를 길게 눌러 복사 → 아래에 붙여넣기. 여러 건도 한 번에 돼요. (캡처 사진은 추출함에 넣으면 자동으로 여기로 와요)</div>
 <textarea id="bankMsgInput" rows="3" placeholder="예) 농협 입금36,224,650원&#10;10/30 17:32 842-01-****22 (주)한동종합 잔액76,752,168원" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #86EFAC; border-radius:8px; font-size:13px; line-height:1.45; font-family:inherit; resize:vertical; background:#fff;"></textarea>
 <div style="display:flex; gap:6px; margin-top:6px;">
-<button type="button" onclick="checkBankMessages()" style="flex:1; height:40px; background:#16A34A; color:#fff; border:none; border-radius:8px; font-size:13.5px; font-weight:900; cursor:pointer;">🔍 미수금과 맞춰보기</button>
+<button type="button" onclick="checkBankMessages()" style="flex:1; height:40px; background:#16A34A; color:#fff; border:none; border-radius:8px; font-size:13.5px; font-weight:900; cursor:pointer;">🔍 미수금 맞춰보기</button>
 <button type="button" onclick="pasteBankMessages()" style="height:40px; padding:0 12px; background:#fff; color:#166534; border:1px solid #86EFAC; border-radius:8px; font-size:12.5px; font-weight:800; cursor:pointer;">📋 붙여넣기</button>
 <button type="button" onclick="clearBankMessages()" style="height:40px; padding:0 10px; background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; border-radius:8px; font-size:12.5px; font-weight:800; cursor:pointer;">지우기</button>
 </div>
@@ -2462,8 +2462,8 @@ try { fetchInitialData(false); } catch (e) { ov.style.display = 'none'; }
 <span style="font-weight:bold; color:#475569;">%</span>
 </div>
 <label style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:12.5px; font-weight:700; color:#B45309; white-space:nowrap; cursor:pointer;"><input type="checkbox" id="docVatIncl" onchange="setDocVatIncluded(this.checked)" style="width:18px; height:18px;"> 부가세 포함 (시·군)</label>
-<label title="본사·공장에 보낼 때: 단가·금액을 빼고 품명·단위·수량·비고만 보여 줘요. PDF는 '_본사용'으로 따로 저장돼 거래처용을 덮어쓰지 않아요." style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:12.5px; font-weight:700; color:#0F766E; white-space:nowrap; cursor:pointer;"><input type="checkbox" id="docHqCopy" onchange="setDocHqCopy(this.checked)" style="width:18px; height:18px;"> 🏭 본사·공장용 (단가·금액 빼기)</label>
-<label title="체크하고 저장하면 이 문서에서 고친 품명·단가를 다음 추출부터 그대로 씁니다. 이 현장만의 특별 단가면 체크하지 마세요." style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:12.5px; font-weight:700; color:#4338CA; white-space:nowrap; cursor:pointer;"><input type="checkbox" id="docLearnFix" style="width:18px; height:18px;"> 🧠 고친 품명·단가 기억(고정)</label>
+<label title="본사·공장에 보낼 때: 단가·금액을 빼고 품명·단위·수량·비고만 보여 줘요. PDF는 '_본사용'으로 따로 저장돼 거래처용을 덮어쓰지 않아요." style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:12.5px; font-weight:700; color:#0F766E; white-space:nowrap; cursor:pointer;"><input type="checkbox" id="docHqCopy" onchange="setDocHqCopy(this.checked)" style="width:18px; height:18px;"> 🏭 본사용 (단가 빼기)</label>
+<label title="체크하고 저장하면 이 문서에서 고친 품명·단가를 다음 추출부터 그대로 씁니다. 이 현장만의 특별 단가면 체크하지 마세요." style="display:flex; align-items:center; gap:4px; margin-top:4px; font-size:12.5px; font-weight:700; color:#4338CA; white-space:nowrap; cursor:pointer;"><input type="checkbox" id="docLearnFix" style="width:18px; height:18px;"> 🧠 고친 단가 기억</label>
 </div>
 </div>
 <!-- 거래처 빠른 선택 및 관리 -->
@@ -8647,14 +8647,14 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 <input type="url" id="gjUrl" class="gj-in" placeholder="https://..." autocomplete="off">
 <label class="gj-l">② 문구 붙여넣기 (링크 없는 부고 문자 등)</label>
 <textarea id="gjText" class="gj-in" rows="4" placeholder="카톡·문자 내용을 그대로 붙여 넣으세요"></textarea>
-<label class="gj-l">③ 캡처 사진 · PDF (여러 개 가능 · PC는 Ctrl+V로 붙여넣기도 돼요)</label>
+<label class="gj-l">③ 캡처 사진·PDF (여러 장 · PC는 Ctrl+V)</label>
 <div class="gj-photos" id="gjPhotoList"></div>
 <div id="gjPdfInfo" class="gj-pdfinfo" style="display:none"></div>
 <label class="gj-btn gj-sub" style="display:inline-flex">📷 사진·PDF 올리기<input type="file" id="gjPhotoInput" accept="image/*,application/pdf" multiple style="display:none" onchange="gjAddPhotos(this.files); this.value='';"></label>
 <label class="gj-l">메모</label>
 <input type="text" id="gjMemo" class="gj-in" placeholder="예) 신영호 이사님의 아들 결혼소식입니다">
 <div id="gjNotice" class="gj-notice" style="display:none"></div>
-<div class="gj-row"><button type="button" class="gj-btn gj-main" id="gjExtractBtn" onclick="gjExtract()">🔍 추출 (AI)</button><button type="button" class="gj-btn gj-sub" onclick="gjRuleFill()">📝 규칙으로 정리</button><button type="button" class="gj-btn gj-sub" onclick="gjFillForm({}); gjShowForm(true);">✏️ 직접 입력</button></div>
+<div class="gj-row"><button type="button" class="gj-btn gj-main" id="gjExtractBtn" onclick="gjExtract()">🔍 AI 추출</button><button type="button" class="gj-btn gj-sub" onclick="gjRuleFill()">📝 규칙 정리</button><button type="button" class="gj-btn gj-sub" onclick="gjFillForm({}); gjShowForm(true);">✏️ 직접 입력</button></div>
 </div>
 
 <div class="gj-card" id="gjFormCard" style="display:none">
@@ -8932,10 +8932,10 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 </div>
 
 <!-- 품목 축약 모드 선택 버튼 -->
-<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; margin-bottom:10px;">
-<button type="button" class="tax-preset-chip active" id="btnCondenseMode_1" onclick="setTaxItemCondenseMode('summary1')">1줄 합산 (외 N종 권장)</button>
-<button type="button" class="tax-preset-chip" id="btnCondenseMode_4" onclick="setTaxItemCondenseMode('max4')">4줄 이내 자동배치</button>
-<button type="button" class="tax-preset-chip" id="btnCondenseMode_manual" onclick="setTaxItemCondenseMode('manual')">직접 편집 (+행 추가)</button>
+<div style="display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:6px; margin-bottom:10px;">
+<button type="button" class="tax-preset-chip active" id="btnCondenseMode_1" onclick="setTaxItemCondenseMode('summary1')">1줄 합산</button>
+<button type="button" class="tax-preset-chip" id="btnCondenseMode_4" onclick="setTaxItemCondenseMode('max4')">4줄 이내</button>
+<button type="button" class="tax-preset-chip" id="btnCondenseMode_manual" onclick="setTaxItemCondenseMode('manual')">직접 편집</button>
 </div>
 
 <div style="background:#ECFDF5; border:1px solid #6EE7B7; color:#065F46; border-radius:8px; padding:7px 10px; font-size:11.5px; font-weight:800; margin-bottom:8px;">
@@ -9016,7 +9016,7 @@ showToast('❌ 주문서 분석 오류: ' + (err.message || err));
 <!-- [STEP 6] 세금계산서 발행 대장 이력 (구글 시트 & 드라이브 폴더 직결) -->
 <div class="tax-step-card">
 <div class="tax-step-header">
-<span>📊 5. 세금계산서 발행 대장 내역 (구글 시트 · 드라이브 실시간 연동)</span>
+<span>📊 세금계산서 발행 대장</span>
 <span id="taxHistoryCountBadge" style="font-size:11.5px; color:#64748b;">총 0건</span>
 </div>
 <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; background:#F0FDFA; border:1px solid #99F6E4; padding:8px 10px; border-radius:8px; align-items:center; justify-content:space-between;">
@@ -17382,7 +17382,7 @@ function gjAllText(extra){ return [gjV('gjText'), gjPdfText, extra || ''].filter
 function gjRuleFill(extra){
   gjPickUrl(); if (!extra) gjSetEditing('');
   var raw = gjAllText(extra);
-  if (!raw.trim()) { gjNotice('규칙 정리는 글자가 있어야 해요. 문구를 붙여 넣거나 글자가 있는 PDF를 올려 주세요. (사진은 [🔍 추출 (AI)]로 읽어요)'); return; }
+  if (!raw.trim()) { gjNotice('규칙 정리는 글자가 있어야 해요. 문구를 붙여 넣거나 글자가 있는 PDF를 올려 주세요. (사진은 [🔍 AI 추출]로 읽어요)'); return; }
   var d = window.gjRuleParse ? gjRuleParse(raw) : {};
   gjLast = d; gjFillForm(d); gjShowForm(true);
 }
@@ -17390,9 +17390,9 @@ function gjExtract(){
   gjPickUrl(); gjSetEditing('');
   var p = { url: gjV('gjUrl'), text: gjAllText(), memo: gjV('gjMemo'), images: gjPhotos.slice(0, 8).map(function(x){ return { b64: x.b64, mime: x.mime }; }) };
   if (!p.url && !p.text && !p.images.length) { gjNotice('링크, 문구, 캡처 사진 중 하나는 넣어 주세요.'); return; }
-  var btn = document.getElementById('gjExtractBtn'); btn.disabled = true; btn.textContent = '⏳ 읽는 중… (10~30초)'; gjNotice('');
+  var btn = document.getElementById('gjExtractBtn'); btn.disabled = true; btn.textContent = '⏳ 읽는 중…'; gjNotice('');
   google.script.run.withSuccessHandler(function(r){
-    btn.disabled = false; btn.textContent = '🔍 추출';
+    btn.disabled = false; btn.textContent = '🔍 AI 추출';
     if (!r || !r.success) {
       gjNotice((r && r.error) || '추출하지 못했어요.' + ((r && r.dup) ? '\n※ 이 링크는 ' + r.dup.date + '에 이미 저장된 건이에요 (' + r.dup.title + ')' : ''));
       if (r && r.needCapture) { try { document.getElementById('gjPhotoInput').parentNode.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {} return; }
@@ -17406,7 +17406,7 @@ function gjExtract(){
     if (r.linkThin && p.url) msgs.push('링크는 앱에서 내용을 읽을 수 없어서, 올린 사진·문구로 정리했어요. 원본 링크는 문서에 남겨요.');
     gjNotice(msgs.join('\n'));
     gjFillForm(r.data); gjShowForm(true);
-  }).withFailureHandler(function(e){ btn.disabled = false; btn.textContent = '🔍 추출'; gjNotice('❌ ' + (e.message || e)); }).gj_extract(p);
+  }).withFailureHandler(function(e){ btn.disabled = false; btn.textContent = '🔍 AI 추출'; gjNotice('❌ ' + (e.message || e)); }).gj_extract(p);
 }
 function gjLines(list, keys){ return (list || []).map(function(x){ return keys.map(function(k){ return String(x[k] || '').trim(); }).join(' | '); }).join('\n'); }
 function gjParse(text, keys){ return String(text || '').split('\n').map(function(l){ return l.trim(); }).filter(Boolean).map(function(l){ var c = l.split('|').map(function(s){ return s.trim(); }), o = {}; keys.forEach(function(k, i){ o[k] = c[i] || ''; }); return o; }); }
@@ -18737,6 +18737,23 @@ button[style*="background:#F1F5F9"],button[style*="background: #F1F5F9"],button[
 .tab-btn.active,.portal-order-tab.active,.tag.active{background:#15171A !important;color:#fff !important;border-color:#15171A !important}
 /* 목록 줄 */
 .v3li{border-radius:0}
+</style>
+<style id="designV4t">
+/* ===== [§1-E-11] 글자·버튼 통일 — 버튼은 한 줄, 같은 높이·글자 ===== */
+button:not(.v3-ib):not(.mic):not(#vaFab):not(.v3-row):not(.v3-mi):not(.v3-stat):not(#v4Nav button):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){white-space:nowrap !important;line-height:1.2 !important;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+#mainContainer button:not(.v3-ib):not(.v3-row):not(.v3-mi):not(.v3-stat):not(.v3-act):not(.v3-pill):not(.tab-btn):not(.tag):not(.portal-order-tab):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),
+#docWriterSection button:not(.v3-act):not(.tab-btn):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),
+.card button:not(.v3-act):not(.v3-pill):not(.tab-btn):not(.tag):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){min-height:44px;font-size:15px !important;font-weight:700 !important;padding-left:14px;padding-right:14px}
+label[style*="cursor:pointer"]:not(:has(input[type=checkbox])):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),label[style*="cursor: pointer"]:not(:has(input[type=checkbox])):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){white-space:nowrap !important;font-size:15px !important;font-weight:700 !important;min-height:44px;border-radius:12px !important}
+.v3-act,.v3-pill{font-size:13.5px !important;font-weight:700 !important;height:36px !important;min-height:36px;padding:0 12px !important;white-space:nowrap !important}
+.tab-btn,.portal-order-tab,.tag{font-size:14px !important;font-weight:700 !important;min-height:36px;padding:0 14px !important;white-space:nowrap !important}
+/* 글자 크기 단계: 제목 17 · 소제목 15 · 본문 15 · 안내 13 */
+.section-title,.section-title span{font-size:17px !important;font-weight:800 !important}
+.tax-step-header span:first-child,.gj-h,.gj-label{font-size:15px !important;font-weight:800 !important}
+.card label:not([style*="cursor"]):not(:has(input[type=checkbox])):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){font-size:14px !important}
+.card small,.card .hint{font-size:13px !important}
+.v3li-main{min-width:0}select{min-width:0;max-width:100%}input:not([type=checkbox]):not([type=radio]){min-width:0}div:has(> .tax-preset-chip){flex-wrap:wrap !important}.gj-row{display:flex !important;flex-wrap:nowrap !important;gap:8px}.gj-row > .gj-btn{flex:1 1 0 !important;padding:0 6px !important;min-width:0}div:has(> button[onclick="checkBankMessages()"]) > button{padding:0 8px !important;flex:1 1 auto !important}.v3li-main b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.gj-l{font-size:14px !important;font-weight:700 !important}
 </style>
 <style id="designV4">
 /* ===== [§1-E-9] 새 홈 디자인 v4 — 둥근 카드 · 먼저 챙길 일 · 빈 칸 접기 · 아래 메뉴 막대 ===== */
