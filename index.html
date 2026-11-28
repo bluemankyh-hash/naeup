@@ -277,7 +277,7 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261128-1629';
+var APP_BUILD = '20261128-1637';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -18767,7 +18767,7 @@ button[style*="background:#F1F5F9"],button[style*="background: #F1F5F9"],button[
 .v4-fb button{flex:1;height:44px;border-radius:14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;border:1px solid #F0C9A0;background:#fff;color:#15171A}
 .v4-fb button.dark{border:none;background:#15171A;color:#fff}
 #homeToday .v3-mailrow{background:#fff;border-radius:20px;border-top:none !important;padding:12px 16px}
-#v4Nav{position:fixed;left:0;right:0;bottom:0;z-index:99980;height:calc(66px + env(safe-area-inset-bottom));padding:6px 4px env(safe-area-inset-bottom);box-sizing:border-box;background:rgba(255,255,255,.97);border-top:1px solid #E6E8EC;display:flex;align-items:flex-start;justify-content:space-around}
+#v4Nav{position:fixed;left:0;right:0;bottom:0;z-index:100015;height:calc(66px + env(safe-area-inset-bottom));padding:6px 4px env(safe-area-inset-bottom);box-sizing:border-box;background:rgba(255,255,255,.97);border-top:1px solid #E6E8EC;display:flex;align-items:flex-start;justify-content:space-around}
 #v4Nav button{width:64px;height:54px;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:inherit;font-size:11px;font-weight:500;color:#5B6170;cursor:pointer;position:relative;padding:0}
 #v4Nav button.on{color:#1D4ED8;font-weight:700}
 #v4Nav button em{position:absolute;top:2px;left:36px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#D23F31;color:#fff;font-style:normal;font-size:10px;font-weight:700;line-height:16px;text-align:center}
@@ -18776,10 +18776,19 @@ button[style*="background:#F1F5F9"],button[style*="background: #F1F5F9"],button[
 body.v4-nav{padding-bottom:calc(72px + env(safe-area-inset-bottom)) !important}
 body.v4-nav #vaFab{display:none !important}
 body.va-open #v4Nav{display:none}
+#v4Nav{overflow:visible !important;contain:none !important}
+#v4Nav .mic{flex:none;margin-top:-14px !important;position:relative;z-index:1}
+/* 목록이 작은 상자 안에 갇혀 스크롤되지 않게: 화면 전체로 펼침 */
+#portalMhLookupResultBox,#portalPoLookupResultBox,#mailListContainer,#taxInvoiceHistoryContainer,#docCardsContainer{max-height:none !important;overflow:visible !important}
+/* 발주 조회 거르기 칸: 2줄로 (거래처·날짜 / 검색·전체) */
+div:has(> #portalPoLookupCompany),div:has(> #portalMhLookupCompany){grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important}
+#portalPoLookupKeyword,#portalMhLookupKeyword{grid-column:1 / 2}
+#portalPoLookupCompany,#portalMhLookupCompany,#portalPoLookupDate,#portalMhLookupDate{font-size:15px !important}
+
 body.v4-nav #contactBookSection,body.v4-nav #generalLogSection,body.v4-nav #manualAddSection,body.v4-nav #updateSection,body.v4-nav #detailEditSection,body.v4-nav #taxInvoiceSection,body.v4-nav #manholeOrderSection,body.v4-nav #extractInboxSection,body.v4-nav #deliverySection,body.v4-nav #gyeongjoSection{height:calc(100% - 56px - 66px) !important;height:calc(100dvh - 56px - 66px - env(safe-area-inset-bottom)) !important}
 body.v4-nav #bizModal,body.v4-nav #docHistoryModal{bottom:calc(66px + env(safe-area-inset-bottom)) !important;height:auto !important}
 /* 입력 창·확인 창이 떠 있으면 아래 메뉴는 숨김 (창의 버튼을 가리지 않게) */
-body:has(.custom-modal[style*="display: flex"]) #v4Nav,body:has(.custom-modal[style*="display:flex"]) #v4Nav,body:has(.custom-modal[style*="display: block"]) #v4Nav,body:has(.custom-modal[style*="display:block"]) #v4Nav,body:has(#mailComposeModal[style*="display: flex"]) #v4Nav,body:has(#mailComposeModal[style*="display:flex"]) #v4Nav,body:has(#mailComposeModal[style*="display: block"]) #v4Nav,body:has(#mailComposeModal[style*="display:block"]) #v4Nav,body:has(#portalSpAccountModal[style*="display: flex"]) #v4Nav,body:has(#portalSpAccountModal[style*="display:flex"]) #v4Nav,body:has(#portalSpAccountModal[style*="display: block"]) #v4Nav,body:has(#portalSpAccountModal[style*="display:block"]) #v4Nav,body:has(#manholeAppUrlModal[style*="display: flex"]) #v4Nav,body:has(#manholeAppUrlModal[style*="display:flex"]) #v4Nav,body:has(#manholeAppUrlModal[style*="display: block"]) #v4Nav,body:has(#manholeAppUrlModal[style*="display:block"]) #v4Nav,body:has(#v3Drawer.open) #v4Nav{display:none}
+body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display: flex"]) #v4Nav,body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display:flex"]) #v4Nav,body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display: block"]) #v4Nav,body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display:block"]) #v4Nav,body:has(#mailComposeModal[style*="display: flex"]) #v4Nav,body:has(#mailComposeModal[style*="display:flex"]) #v4Nav,body:has(#mailComposeModal[style*="display: block"]) #v4Nav,body:has(#mailComposeModal[style*="display:block"]) #v4Nav,body:has(#portalSpAccountModal[style*="display: flex"]) #v4Nav,body:has(#portalSpAccountModal[style*="display:flex"]) #v4Nav,body:has(#portalSpAccountModal[style*="display: block"]) #v4Nav,body:has(#portalSpAccountModal[style*="display:block"]) #v4Nav,body:has(#manholeAppUrlModal[style*="display: flex"]) #v4Nav,body:has(#manholeAppUrlModal[style*="display:flex"]) #v4Nav,body:has(#manholeAppUrlModal[style*="display: block"]) #v4Nav,body:has(#manholeAppUrlModal[style*="display:block"]) #v4Nav,body:has(#v3Drawer.open) #v4Nav{display:none}
 @media (max-width:600px){
   #customConfirmModal.custom-modal,#customAlertModal.custom-modal{align-items:flex-end !important}
   #customConfirmModal .custom-modal-content,#customAlertModal .custom-modal-content{max-width:none !important;width:100% !important;margin:0 !important;border-radius:24px 24px 0 0 !important;padding:22px 18px calc(22px + env(safe-area-inset-bottom)) !important}
