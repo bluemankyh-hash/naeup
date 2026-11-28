@@ -277,7 +277,7 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261128-1700';
+var APP_BUILD = '20261128-1705';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -5448,7 +5448,7 @@ const wrapper = document.getElementById('sheetWrapper');
 if (!sheet || !wrapper) return;
 // 부모 컨테이너의 가로폭에서 좌우 최소 여백(16px)을 제외한 가용 너비 계산
 const parentWidth = wrapper.parentElement ? wrapper.parentElement.clientWidth : wrapper.clientWidth;
-const safeWidth = Math.max(parentWidth - 16, 280);
+const safeWidth = Math.max(parentWidth - (window.innerWidth < 700 ? 2 : 16), 280);   // 휴대폰은 여백을 줄여 서류를 더 크게
 // 794px 기준 안전 비율 산출
 const baseScale = safeWidth / 794;
 const scale = isZoomedIn ? (baseScale * 1.35) : baseScale;
@@ -18916,6 +18916,126 @@ body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display: fle
   if (typeof v3SyncTitle === 'function') { var oS = v3SyncTitle; v3SyncTitle = function(){ oS.apply(this, arguments); try { v4Nav(); } catch (e) {} }; }
   var go = function(){ try { v4Nav(); } catch (e) {} try { if ((window.currentWorkspaceApp || 'hub') === 'hub') v3RenderToday(); } catch (e) {} };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else setTimeout(go, 0);
+})();
+</script>
+<style id="itemEditorCss">
+@media (max-width:699px){
+  #docWriterSection .card:has(#sheetWrapper){margin:0 2px 12px !important;padding:12px 2px !important;border-radius:14px !important}
+}
+#ieSheet{position:fixed;inset:0;z-index:100070;display:none}
+#ieSheet.open{display:block}
+#ieSheet .ie-dim{position:absolute;inset:0;background:rgba(15,17,21,.4)}
+#ieSheet .ie-box{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:10px 16px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;max-height:92dvh;overflow-y:auto;font-family:inherit}
+#ieSheet .ie-grab{width:40px;height:5px;border-radius:3px;background:#D6D9DF;margin:0 auto 10px}
+#ieSheet .ie-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+#ieSheet .ie-top b{font-size:17px;font-weight:800}
+#ieSheet .ie-top span{font-size:13px;color:#5B6170}
+#ieSheet label{display:block;font-size:13px;font-weight:700;color:#5B6170;margin:10px 0 4px}
+#ieSheet input{width:100%;height:48px;border:1px solid #E1E4E9;border-radius:12px;padding:0 12px;font-size:17px !important;box-sizing:border-box;background:#fff}
+#ieSheet input:focus{border-color:#1D4ED8;outline:none;box-shadow:0 0 0 3px rgba(29,78,216,.14)}
+#ieSheet .ie-g3{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1.3fr);gap:8px}
+#ieSheet .ie-sug{margin-top:6px;border:1px solid #E6E8EC;border-radius:12px;max-height:200px;overflow-y:auto;display:none}
+#ieSheet .ie-sug.on{display:block}
+#ieSheet .ie-sug button{display:flex !important;width:100%;justify-content:space-between !important;align-items:center;gap:10px;border:none;border-bottom:1px solid #F0F1F3;background:#fff;padding:0 12px !important;height:44px !important;font-size:14px !important;font-weight:500 !important;color:#15171A;text-align:left;border-radius:0 !important}
+#ieSheet .ie-sug button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ieSheet .ie-sug button em{font-style:normal;color:#1D4ED8;font-weight:700;flex:none}
+#ieSheet .ie-amt{margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:#5B6170}
+#ieSheet .ie-amt b{font-size:20px;color:#15171A}
+#ieSheet .ie-bar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+#ieSheet .ie-bar button{height:44px !important;border-radius:12px !important;border:none;background:#EEF0F3;color:#15171A;font-size:14px !important;font-weight:700 !important}
+#ieSheet .ie-bar .ie-del{color:#C0362B;background:#FDECEA}
+#ieSheet .ie-done{display:block;width:100%;margin-top:8px;height:48px !important;border:none;border-radius:14px !important;background:#1D4ED8;color:#fff;font-size:16px !important;font-weight:700 !important}
+</style>
+<script>
+/* ===== [§1-E-12] 휴대폰: 품목 칸을 누르면 큰 입력 창이 아래에서 올라옴 ===== */
+(function(){
+  var cur = null, box = null;
+  function phone(){ return window.innerWidth < 700; }
+  function rows(){ return [].slice.call(document.querySelectorAll('#itemsBody tr')); }
+  function f(tr, k){ return tr && tr.querySelector({ name: '.item-name-input', unit: 'input.text-center', qty: '.item-qty', price: '.item-price', note: '.item-note' }[k]); }
+  function el(id){ return document.getElementById(id); }
+  function build(){
+    if (box) return box;
+    box = document.createElement('div'); box.id = 'ieSheet';
+    box.innerHTML = '<div class="ie-dim" onclick="ieClose()"></div><div class="ie-box" role="dialog" aria-label="품목 입력">' +
+      '<div class="ie-grab"></div><div class="ie-top"><b id="ieTitle">품목 1</b><span id="ieCount"></span></div>' +
+      '<label for="ieName">품명·규격</label><input id="ieName" type="text" autocomplete="off" placeholder="예) 맨홀 900*300 H1500">' +
+      '<div class="ie-sug" id="ieSug"></div>' +
+      '<div class="ie-g3"><div><label for="ieUnit">단위</label><input id="ieUnit" type="text"></div><div><label for="ieQty">수량</label><input id="ieQty" type="text" inputmode="decimal"></div><div><label for="iePrice">단가</label><input id="iePrice" type="text" inputmode="numeric"></div></div>' +
+      '<label for="ieNote">비고</label><input id="ieNote" type="text">' +
+      '<div class="ie-amt"><span>금액</span><b id="ieAmt">0원</b></div>' +
+      '<div class="ie-bar"><button type="button" onclick="ieMove(-1)">◀ 이전</button><button type="button" onclick="ieMove(1)">다음 ▶</button><button type="button" onclick="ieAdd()">＋ 새 품목</button><button type="button" class="ie-del" onclick="ieDel()">삭제</button></div>' +
+      '<button type="button" class="ie-done" onclick="ieClose()">완료</button></div>';
+    document.body.appendChild(box);
+    var bind = function(id, k){ el(id).addEventListener('input', function(){ push(k, this.value); }); };
+    bind('ieUnit', 'unit'); bind('ieQty', 'qty'); bind('iePrice', 'price'); bind('ieNote', 'note');
+    el('ieName').addEventListener('input', function(){ push('name', this.value); sug(this.value); });
+    el('ieName').addEventListener('focus', function(){ sug(this.value); });
+    return box;
+  }
+  function fire(inp){ try { inp.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} }
+  function push(k, v){
+    if (!cur) return; var inp = f(cur, k); if (!inp) return;
+    if (k === 'price') { var n = String(v).replace(/[^\d]/g, ''); inp.value = n ? Number(n).toLocaleString() : ''; }
+    else inp.value = v;
+    if (k === 'name') { try { filterItemListDropdown(inp, true); } catch (e) {} hideInline(); refresh(['ieUnit', 'iePrice', 'ieNote']); }
+    else fire(inp);
+    amt(); try { syncItemMirrors(); } catch (e) {}
+  }
+  function hideInline(){ document.querySelectorAll('.inline-item-dropdown').forEach(function(d){ d.style.display = 'none'; }); }
+  function amt(){ var a = cur && cur.querySelector('.item-amount'); el('ieAmt').textContent = ((a && a.textContent) || '0') + '원'; }
+  function refresh(only){
+    if (!cur) return;
+    var map = { ieName: 'name', ieUnit: 'unit', ieQty: 'qty', iePrice: 'price', ieNote: 'note' };
+    Object.keys(map).forEach(function(id){ if (only && only.indexOf(id) < 0) return; var inp = f(cur, map[id]); if (inp && document.activeElement !== el(id)) el(id).value = inp.value; });
+    var list = rows(), i = list.indexOf(cur);
+    el('ieTitle').textContent = '품목 ' + (i + 1); el('ieCount').textContent = '전체 ' + list.length + '개';
+    amt();
+  }
+  function sug(kw){
+    var box2 = el('ieSug'); kw = String(kw || '').trim().toLowerCase();
+    var mfr = (el('docMfrSelect') || {}).value; var table = (mfr === 'coatingkorea' ? window.pricesCoating : window.pricesSpacepro) || [];
+    if (!kw || !table.length) { box2.classList.remove('on'); box2.innerHTML = ''; return; }
+    var words = kw.split(/\s+/);
+    var hits = table.filter(function(it){ var n = String(it.name || '').toLowerCase(); return words.every(function(w){ return n.indexOf(w) >= 0; }); }).slice(0, 30);
+    if (!hits.length) { box2.classList.remove('on'); box2.innerHTML = ''; return; }
+    box2.innerHTML = hits.map(function(it, i){ return '<button type="button" data-i="' + i + '"><span>' + String(it.name).replace(/</g, '&lt;') + '</span><em>' + (Number(it.basePrice) || 0).toLocaleString() + '</em></button>'; }).join('');
+    [].forEach.call(box2.querySelectorAll('button'), function(b){ b.onclick = function(){ pick(hits[Number(b.getAttribute('data-i'))]); }; });
+    box2.classList.add('on');
+  }
+  function pick(item){
+    if (!cur || !item) return;
+    var inp = f(cur, 'name'), dd = cur.querySelector('.inline-item-dropdown');
+    try { renderDropdownItems(dd, inp, item.name); var opt = [].slice.call(dd.querySelectorAll('.dropdown-row')).filter(function(r){ return (r.querySelector('span') || {}).textContent === item.name; })[0]; if (opt) opt.click(); else { inp.value = item.name; fire(inp); } } catch (e) { inp.value = item.name; fire(inp); }
+    hideInline(); el('ieSug').classList.remove('on'); refresh(); try { syncItemMirrors(); } catch (e) {}
+    setTimeout(function(){ el('ieQty').focus(); el('ieQty').select && el('ieQty').select(); }, 50);
+  }
+  window.ieOpen = function(tr, focusK){
+    build(); cur = tr; refresh(); box.classList.add('open'); el('ieSug').classList.remove('on');
+    var id = { name: 'ieName', unit: 'ieUnit', qty: 'ieQty', price: 'iePrice', note: 'ieNote' }[focusK || 'name'];
+    setTimeout(function(){ try { el(id).focus(); } catch (e) {} }, 60);
+  };
+  window.ieClose = function(){ if (box) box.classList.remove('open'); cur = null; try { calculateTotals(); updateSheetScale(); syncItemMirrors(); } catch (e) {} };
+  window.ieMove = function(d){ var list = rows(), i = list.indexOf(cur) + d; if (i < 0 || i >= list.length) return showToast(d < 0 ? '첫 품목이에요' : '마지막 품목이에요 · [＋ 새 품목]으로 더 넣어요'); ieOpen(list[i], 'name'); };
+  window.ieAdd = function(){ try { __ieAddRow(); } catch (e) {} var list = rows(); ieOpen(list[list.length - 1], 'name'); };
+  window.ieDel = function(){
+    if (!cur) return; var list = rows(), i = list.indexOf(cur), btn = cur.querySelector('.btn-todo-del');
+    var next = list[i + 1] || list[i - 1];
+    try { removeItemRow(btn); } catch (e) { cur.remove(); }
+    var after = rows(); if (after.length && after.indexOf(next) >= 0) ieOpen(next, 'name'); else ieClose();
+  };
+  /* 표 안의 작은 칸을 누르면 큰 창으로 */
+  document.addEventListener('pointerdown', function(e){
+    if (!phone()) return;
+    var inp = e.target.closest && e.target.closest('#itemsBody input.cell-input'); if (!inp) return;
+    var tr = inp.closest('tr'); var k = inp.classList.contains('item-name-input') ? 'name' : inp.classList.contains('item-qty') ? 'qty' : inp.classList.contains('item-price') ? 'price' : inp.classList.contains('item-note') ? 'note' : 'unit';
+    e.preventDefault(); try { inp.blur(); } catch (x) {} hideInline(); ieOpen(tr, k);
+  }, true);
+  /* [+ 품목]: 휴대폰이면 새 줄을 만들고 바로 큰 창 */
+  if (typeof addItemRow === 'function') {
+    window.__ieAddRow = addItemRow;
+    addItemRow = function(){ var ev = window.event, byTap = !!(ev && /click|pointerup|touchend/.test(ev.type)); window.__ieAddRow.apply(this, arguments); if (byTap && phone() && !(box && box.classList.contains('open'))) { var list = rows(); if (list.length) ieOpen(list[list.length - 1], 'name'); } };
+  }
 })();
 </script>
 </body>
