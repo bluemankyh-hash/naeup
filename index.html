@@ -269,25 +269,27 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
 <title>나의 업무</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" media="print" onload="this.media='all'" />
 <!-- OCR 및 엑셀 라이브러리 -->
 <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261128-1621';
+var APP_BUILD = '20261128-1629';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
-    fetch(location.pathname + '?cb=' + Date.now(), { cache: 'no-store' }).then(function(r) { return r.ok ? r.text() : ''; }).then(function(t) {
-      var m = t && t.match(/var APP_BUILD = '(\d{8}[^']*)'/);
+    /* 화면 전체(1.3MB) 대신 작은 version.json만 받아 비교 — 앱이 다 뜬 뒤에 */
+    setTimeout(function(){ fetch(location.pathname.replace(/[^\/]*$/, '') + 'version.json?cb=' + Date.now(), { cache: 'no-store' }).then(function(r) { return r.ok ? r.text() : ''; }).then(function(t) {
+      var m = t && t.match(/"b"\s*:\s*"(\d{8}[^"]*)"/);
       if (m && m[1] !== APP_BUILD) {
         var key = 'naeup_reload_' + m[1];
         try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch (e) {}
         location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]) + location.hash);
       }
-    }).catch(function() {});
+    }).catch(function() {}); }, 2500);
     document.addEventListener('DOMContentLoaded', function() {
       var tag = document.createElement('div'); tag.textContent = '버전 ' + APP_BUILD.replace(/^(\d{4})(\d{2})(\d{2})-?(\d{2})?(\d{2})?.*/, '$2-$3 $4:$5');
       tag.style.cssText = 'position:fixed;left:6px;bottom:4px;font-size:10px;color:#94A3B8;z-index:5;pointer-events:none';
@@ -312,7 +314,7 @@ function pdfItemsToText_(items) {
   return lines.map(function(l) { return l.parts.join('').replace(/\s{2,}/g, ' ').trim(); }).filter(Boolean).join('\n');
 }
 </script>
-<script>if(typeof pdfjsLib!=="undefined"&&pdfjsLib.GlobalWorkerOptions){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";}</script>
+<script>document.addEventListener("DOMContentLoaded",function(){if(typeof pdfjsLib!=="undefined"&&pdfjsLib.GlobalWorkerOptions){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";}});</script>
 <style>
 /* 크고 시원한 닫기 버튼 일괄 스타일 적용 */
 button[onclick^="closeSection"], .btn-close-unified {
@@ -18709,6 +18711,33 @@ window.rc_handleFileSelect = rc_handleFileSelect;
 window.rc_loadImageFile = rc_loadImageFile;
 })();
 </script>
+<style id="designV4p">
+/* ===== [§1-E-10] 모든 관리 화면을 새 홈과 같은 모양으로 — 둥근 카드 · 둥근 입력칸 · 버튼 색 통일 (인쇄 서류 영역은 그대로) ===== */
+#mainContainer > .card,#mainContainer .container > .card,#depositSection,#todoSection,#dashboardSection,#mailSection,#projectSection,#docWriterSection > .card{border-radius:20px !important;border:none !important;margin:0 12px 12px !important;background:#fff !important;box-sizing:border-box;width:auto !important;max-width:none}
+#docWriterSection{padding:0 0 12px}
+#contactBookSection .card,#generalLogSection .card,#extractInboxSection .card,#deliverySection .card,#gyeongjoSection .card,#taxInvoiceSection .card,#manholeOrderSection .card,#bizModal .card,#docHistoryModal .card{border-radius:20px !important;border:none !important;background:#fff !important}
+.section-title{font-size:17px !important;letter-spacing:-.3px}
+/* 입력칸 */
+input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not(.cell-input):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),select:not(.cell-input):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),textarea:not(.cell-input):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){border-radius:12px !important;border:1px solid #E1E4E9 !important;background-color:#fff !important;min-height:44px;box-sizing:border-box;font-size:16px !important}
+textarea:not(.cell-input):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){min-height:88px}
+input:focus,select:focus,textarea:focus{border-color:#1D4ED8 !important;box-shadow:0 0 0 3px rgba(29,78,216,.14) !important;outline:none}
+/* 버튼 모양 */
+button:not(.v3-ib):not(.v3-pill):not(.mic):not(#vaFab):not([style*="50%"]):not([style*="999"]):not(.v3-stat):not(.v3-row):not(.v3-mi):not(.v3-gmore):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){border-radius:12px !important}
+.btn-add,.save-btn,.btn-big-action,.gj-btn.gj-main,.exi-btn,.mg-btn:not(.sub){background:#1D4ED8 !important;border-color:#1D4ED8 !important;color:#fff !important;box-shadow:none !important;min-height:44px;font-weight:700 !important}
+.gj-btn.gj-sub,.mg-btn.sub,.btn-close-unified,.btn-todo-edit,.btn-header{background:#EEF0F3 !important;border:none !important;color:#15171A !important;box-shadow:none !important}
+.btn-todo-del{background:#FDECEA !important;border:none !important;color:#C0362B !important}
+/* 여러 색 버튼 → 파랑 하나, 회색 버튼 → 연회색 (배경색으로만 판단) */
+button[style*="background:#0F766E"],button[style*="background: #0F766E"],button[style*="background-color:#0F766E"],button[style*="background-color: #0F766E"],button[style*="background:#0f766e"],button[style*="background: #0f766e"],button[style*="background-color:#0f766e"],button[style*="background-color: #0f766e"],button[style*="background:#16A34A"],button[style*="background: #16A34A"],button[style*="background-color:#16A34A"],button[style*="background-color: #16A34A"],button[style*="background:#16a34a"],button[style*="background: #16a34a"],button[style*="background-color:#16a34a"],button[style*="background-color: #16a34a"],button[style*="background:#166534"],button[style*="background: #166534"],button[style*="background-color:#166534"],button[style*="background-color: #166534"],button[style*="background:#10b981"],button[style*="background: #10b981"],button[style*="background-color:#10b981"],button[style*="background-color: #10b981"],button[style*="background:#0284c7"],button[style*="background: #0284c7"],button[style*="background-color:#0284c7"],button[style*="background-color: #0284c7"],button[style*="background:#1F5FD6"],button[style*="background: #1F5FD6"],button[style*="background-color:#1F5FD6"],button[style*="background-color: #1F5FD6"],button[style*="background:#1D4ED8"],button[style*="background: #1D4ED8"],button[style*="background-color:#1D4ED8"],button[style*="background-color: #1D4ED8"],button[style*="background:#2563eb"],button[style*="background: #2563eb"],button[style*="background-color:#2563eb"],button[style*="background-color: #2563eb"],button[style*="background:linear-gradient"],button[style*="background: linear-gradient"],button[style*="background-color:linear-gradient"],button[style*="background-color: linear-gradient"],label[style*="background:#0F766E"],label[style*="background: #0F766E"],label[style*="background-color:#0F766E"],label[style*="background-color: #0F766E"],label[style*="background:#0f766e"],label[style*="background: #0f766e"],label[style*="background-color:#0f766e"],label[style*="background-color: #0f766e"],label[style*="background:#16A34A"],label[style*="background: #16A34A"],label[style*="background-color:#16A34A"],label[style*="background-color: #16A34A"],label[style*="background:#16a34a"],label[style*="background: #16a34a"],label[style*="background-color:#16a34a"],label[style*="background-color: #16a34a"],label[style*="background:#166534"],label[style*="background: #166534"],label[style*="background-color:#166534"],label[style*="background-color: #166534"],label[style*="background:#10b981"],label[style*="background: #10b981"],label[style*="background-color:#10b981"],label[style*="background-color: #10b981"],label[style*="background:#0284c7"],label[style*="background: #0284c7"],label[style*="background-color:#0284c7"],label[style*="background-color: #0284c7"],label[style*="background:#1F5FD6"],label[style*="background: #1F5FD6"],label[style*="background-color:#1F5FD6"],label[style*="background-color: #1F5FD6"],label[style*="background:#1D4ED8"],label[style*="background: #1D4ED8"],label[style*="background-color:#1D4ED8"],label[style*="background-color: #1D4ED8"],label[style*="background:#2563eb"],label[style*="background: #2563eb"],label[style*="background-color:#2563eb"],label[style*="background-color: #2563eb"],label[style*="background:linear-gradient"],label[style*="background: linear-gradient"],label[style*="background-color:linear-gradient"],label[style*="background-color: linear-gradient"]{background:#1D4ED8 !important;border-color:#1D4ED8 !important;color:#fff !important;box-shadow:none !important;border-radius:12px !important}
+button[style*="background:#334155"],button[style*="background: #334155"],button[style*="background-color:#334155"],button[style*="background-color: #334155"],button[style*="background:#475569"],button[style*="background: #475569"],button[style*="background-color:#475569"],button[style*="background-color: #475569"],button[style*="background:#64748b"],button[style*="background: #64748b"],button[style*="background-color:#64748b"],button[style*="background-color: #64748b"],button[style*="background:#94a3b8"],button[style*="background: #94a3b8"],button[style*="background-color:#94a3b8"],button[style*="background-color: #94a3b8"],button[style*="background:#cbd5e0"],button[style*="background: #cbd5e0"],button[style*="background-color:#cbd5e0"],button[style*="background-color: #cbd5e0"]{background:#EEF0F3 !important;border-color:#EEF0F3 !important;color:#15171A !important}
+button[style*="background:#F1F5F9"],button[style*="background: #F1F5F9"],button[style*="background-color:#F1F5F9"],button[style*="background-color: #F1F5F9"],button[style*="background:#f1f5f9"],button[style*="background: #f1f5f9"],button[style*="background-color:#f1f5f9"],button[style*="background-color: #f1f5f9"],button[style*="background:#F8FAFC"],button[style*="background: #F8FAFC"],button[style*="background-color:#F8FAFC"],button[style*="background-color: #F8FAFC"],button[style*="background:#EFF6FF"],button[style*="background: #EFF6FF"],button[style*="background-color:#EFF6FF"],button[style*="background-color: #EFF6FF"],button[style*="background:#F5F3FF"],button[style*="background: #F5F3FF"],button[style*="background-color:#F5F3FF"],button[style*="background-color: #F5F3FF"],button[style*="background:#F0FDFA"],button[style*="background: #F0FDFA"],button[style*="background-color:#F0FDFA"],button[style*="background-color: #F0FDFA"]{background:#EEF3FF !important;border-color:#C9D7F8 !important;color:#1D4ED8 !important}
+#customConfirmOkBtn{background:#1D4ED8 !important}
+#customConfirmOkBtn[style*="ef4444"]{background:#D23F31 !important}
+/* 탭 · 거르기 단추 */
+.tab-btn,.portal-order-tab,.tag,.tax-preset-chip{border-radius:999px !important}
+.tab-btn.active,.portal-order-tab.active,.tag.active{background:#15171A !important;color:#fff !important;border-color:#15171A !important}
+/* 목록 줄 */
+.v3li{border-radius:0}
+</style>
 <style id="designV4">
 /* ===== [§1-E-9] 새 홈 디자인 v4 — 둥근 카드 · 먼저 챙길 일 · 빈 칸 접기 · 아래 메뉴 막대 ===== */
 #homeToday{padding:4px 12px 0;gap:12px !important}
