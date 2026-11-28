@@ -277,7 +277,7 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261128-1705';
+var APP_BUILD = '20261128-1716';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -18918,6 +18918,95 @@ body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display: fle
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else setTimeout(go, 0);
 })();
 </script>
+<style id="pastPriceCss">
+.search-cell-wrap:has(.pp-hint){flex-wrap:wrap !important}
+.search-cell-wrap:has(.pp-hint) .item-name-input{flex:1 1 0 !important;width:auto !important;min-width:0}
+.pp-hint{display:block;flex:0 0 100%;width:100%;order:9;margin-top:2px;font-size:11px;line-height:1.35;color:#5B6170;white-space:normal}
+.pp-hint b{color:#15171A;font-weight:700}
+.pp-hint .ok{color:#1F8A4C;font-weight:700}.pp-hint .bad{color:#C0362B;font-weight:700}
+#iePast{margin-top:8px;padding:10px 12px;border-radius:12px;background:#F4F5F7;font-size:13.5px;line-height:1.55;color:#3A3F47;display:none}
+#iePast.on{display:block}
+#iePast b{color:#15171A}#iePast .ok{color:#1F8A4C;font-weight:700}#iePast .bad{color:#C0362B;font-weight:700}
+#iePast button{margin-top:6px;height:34px !important;padding:0 10px !important;border:none;border-radius:10px !important;background:#E8EFFF;color:#1D4ED8;font-size:13px !important;font-weight:700 !important}
+</style>
+<script>
+/* ===== [§1-E-13] 견적할 때 지난 단가 보기: 지난 판매가(견적·명세) · 지난 매입가(발주서) · 지금 단가 마진 ===== */
+(function(){
+  var idx = null, idxN = -1;
+  function norm(x){ return String(x || '').toLowerCase().replace(/[×xX＊]/g, '*').replace(/[\s·.,\-_/]/g, ''); }
+  function digits(x){ return (String(x || '').match(/\d+/g) || []).join('|'); }
+  function co(x){ return String(x || '').replace(/\(\s*주\s*\)|㈜|주식회사|[\s()（）]/g, ''); }
+  function num(v){ return Number(String(v || '').replace(/[^\d]/g, '')) || 0; }
+  function build(){
+    var recs = window.allDocRecords || [];
+    if (idx && idxN === recs.length) return idx;
+    idx = {}; idxN = recs.length;
+    recs.forEach(function(r){
+      if (!r || r.hidden || !Array.isArray(r.items)) return;
+      r.items.forEach(function(x){
+        var n = norm(x && x.name), pr = num(x && x.price); if (!n || !pr) return;
+        (idx[n] = idx[n] || []).push({ price: pr, date: String(r.date || ''), type: String(r.docType || ''), co: r.recvCompany || '', project: r.project || '', name: x.name });
+      });
+    });
+    return idx;
+  }
+  function find(name){
+    var n = norm(name); if (!n || n.length < 2) return [];
+    var ix = build(), out = (ix[n] || []).slice(), d = digits(name);
+    if (!out.length && d) Object.keys(ix).forEach(function(k){ if (k !== n && digits(ix[k][0].name) === d && (k.indexOf(n) >= 0 || n.indexOf(k) >= 0)) out = out.concat(ix[k]); });
+    return out.sort(function(a, b){ return b.date.localeCompare(a.date); });
+  }
+  window.pastPrices = function(name, company){
+    var all = find(name); if (!all.length) return null;
+    var c = co(company);
+    var sells = all.filter(function(e){ return e.type !== 'PO'; }), buys = all.filter(function(e){ return e.type === 'PO'; });
+    return { same: c ? sells.filter(function(e){ return co(e.co) === c; })[0] || null : null, sell: sells[0] || null, buy: buys[0] || null };
+  };
+  function target(){ try { return Number(localStorage.getItem('naeup_margin_pct')) || 10; } catch (e) { return 10; } }
+  function won(v){ return (Number(v) || 0).toLocaleString(); }
+  function md(d){ return String(d || '').slice(2, 10).replace(/-/g, '.'); }
+  function curCo(){ var e = document.getElementById('recvCompany'); return e ? (e.innerText || e.value || '').trim() : ''; }
+  function curType(){ return window.currentDocType || 'EST'; }
+  window.pastPriceHtml = function(name, price, short){
+    var p = pastPrices(name, curCo()); if (!p) return '';
+    var parts = [], tn = { EST: '견적', TAX: '명세' };
+    var s = p.same || p.sell;
+    if (s) parts.push((p.same ? '이 거래처 ' : (short ? '' : '다른 곳 ')) + md(s.date) + ' ' + (tn[s.type] || '') + ' <b>' + won(s.price) + '</b>' + (!p.same && !short && s.co ? ' (' + String(s.co).replace(/</g, '&lt;') + ')' : ''));
+    if (p.buy) parts.push('매입 ' + md(p.buy.date) + ' <b>' + won(p.buy.price) + '</b>');
+    var pr = num(price);
+    if (p.buy && pr && curType() !== 'PO') {
+      var m = Math.round((pr - p.buy.price) / pr * 1000) / 10, t = target();
+      parts.push('마진 <span class="' + (m >= t ? 'ok' : 'bad') + '">' + m + '%' + (m >= t ? '' : ' (목표 ' + t + '%)') + '</span>');
+    }
+    return parts.join(' · ');
+  };
+  /* PC: 표의 품명 아래 작은 글씨 (인쇄·PDF에는 안 나옴) */
+  function rowHint(tr){
+    if (!tr || window.innerWidth < 700) return;
+    var nameI = tr.querySelector('.item-name-input'), priceI = tr.querySelector('.item-price'); if (!nameI) return;
+    var wrap = tr.querySelector('.search-cell-wrap'), h = tr.querySelector('.pp-hint');
+    var html = nameI.value.trim() ? pastPriceHtml(nameI.value, priceI && priceI.value, true) : '';
+    if (!html) { if (h) h.remove(); return; }
+    if (!h) { h = document.createElement('small'); h.className = 'pp-hint no-print'; wrap.appendChild(h); }
+    if (h.innerHTML !== html) h.innerHTML = html;
+  }
+  var t = null;
+  function all(){ clearTimeout(t); t = setTimeout(function(){ document.querySelectorAll('#itemsBody tr').forEach(rowHint); }, 250); }
+  ['input', 'change', 'click'].forEach(function(ev){ document.addEventListener(ev, function(e){ if (e.target.closest && e.target.closest('#itemsBody, .inline-item-dropdown')) all(); }, true); });
+  var tb = document.getElementById('itemsBody');
+  if (tb) new MutationObserver(function(ms){ if (ms.some(function(m){ return m.type === 'childList' && m.target === tb; })) all(); }).observe(tb, { childList: true });
+  /* 휴대폰 큰 입력 창: 품명 밑에 지난 단가 + [지난 단가로] */
+  window.iePastUpdate = function(tr){
+    var box = document.getElementById('iePast'); if (!box || !tr) return;
+    var nameI = tr.querySelector('.item-name-input'), priceI = tr.querySelector('.item-price');
+    var html = nameI && nameI.value.trim() ? pastPriceHtml(nameI.value, priceI && priceI.value, false) : '';
+    if (!html) { box.classList.remove('on'); box.innerHTML = ''; return; }
+    var p = pastPrices(nameI.value, curCo()), s = p && (p.same || p.sell);
+    box.innerHTML = '📒 ' + html + (s && curType() !== 'PO' && num(priceI.value) !== s.price ? '<br><button type="button" onclick="iePastUse(' + s.price + ')">지난 판매가 ' + won(s.price) + '원으로</button>' : '');
+    box.classList.add('on');
+  };
+})();
+</script>
 <style id="itemEditorCss">
 @media (max-width:699px){
   #docWriterSection .card:has(#sheetWrapper){margin:0 2px 12px !important;padding:12px 2px !important;border-radius:14px !important}
@@ -18960,7 +19049,7 @@ body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display: fle
     box.innerHTML = '<div class="ie-dim" onclick="ieClose()"></div><div class="ie-box" role="dialog" aria-label="품목 입력">' +
       '<div class="ie-grab"></div><div class="ie-top"><b id="ieTitle">품목 1</b><span id="ieCount"></span></div>' +
       '<label for="ieName">품명·규격</label><input id="ieName" type="text" autocomplete="off" placeholder="예) 맨홀 900*300 H1500">' +
-      '<div class="ie-sug" id="ieSug"></div>' +
+      '<div class="ie-sug" id="ieSug"></div><div id="iePast"></div>' +
       '<div class="ie-g3"><div><label for="ieUnit">단위</label><input id="ieUnit" type="text"></div><div><label for="ieQty">수량</label><input id="ieQty" type="text" inputmode="decimal"></div><div><label for="iePrice">단가</label><input id="iePrice" type="text" inputmode="numeric"></div></div>' +
       '<label for="ieNote">비고</label><input id="ieNote" type="text">' +
       '<div class="ie-amt"><span>금액</span><b id="ieAmt">0원</b></div>' +
@@ -18980,7 +19069,7 @@ body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display: fle
     else inp.value = v;
     if (k === 'name') { try { filterItemListDropdown(inp, true); } catch (e) {} hideInline(); refresh(['ieUnit', 'iePrice', 'ieNote']); }
     else fire(inp);
-    amt(); try { syncItemMirrors(); } catch (e) {}
+    amt(); try { syncItemMirrors(); } catch (e) {} try { iePastUpdate(cur); } catch (e) {}
   }
   function hideInline(){ document.querySelectorAll('.inline-item-dropdown').forEach(function(d){ d.style.display = 'none'; }); }
   function amt(){ var a = cur && cur.querySelector('.item-amount'); el('ieAmt').textContent = ((a && a.textContent) || '0') + '원'; }
@@ -18990,7 +19079,7 @@ body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display: fle
     Object.keys(map).forEach(function(id){ if (only && only.indexOf(id) < 0) return; var inp = f(cur, map[id]); if (inp && document.activeElement !== el(id)) el(id).value = inp.value; });
     var list = rows(), i = list.indexOf(cur);
     el('ieTitle').textContent = '품목 ' + (i + 1); el('ieCount').textContent = '전체 ' + list.length + '개';
-    amt();
+    amt(); try { iePastUpdate(cur); } catch (e) {}
   }
   function sug(kw){
     var box2 = el('ieSug'); kw = String(kw || '').trim().toLowerCase();
@@ -19015,6 +19104,7 @@ body:has(.custom-modal:not(#docHistoryModal):not(#bizModal)[style*="display: fle
     var id = { name: 'ieName', unit: 'ieUnit', qty: 'ieQty', price: 'iePrice', note: 'ieNote' }[focusK || 'name'];
     setTimeout(function(){ try { el(id).focus(); } catch (e) {} }, 60);
   };
+  window.iePastUse = function(v){ if (!cur) return; el('iePrice').value = Number(v).toLocaleString(); push('price', String(v)); };
   window.ieClose = function(){ if (box) box.classList.remove('open'); cur = null; try { calculateTotals(); updateSheetScale(); syncItemMirrors(); } catch (e) {} };
   window.ieMove = function(d){ var list = rows(), i = list.indexOf(cur) + d; if (i < 0 || i >= list.length) return showToast(d < 0 ? '첫 품목이에요' : '마지막 품목이에요 · [＋ 새 품목]으로 더 넣어요'); ieOpen(list[i], 'name'); };
   window.ieAdd = function(){ try { __ieAddRow(); } catch (e) {} var list = rows(); ieOpen(list[list.length - 1], 'name'); };
