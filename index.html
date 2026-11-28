@@ -277,7 +277,7 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 /* 앱 새 버전 자동 적용: 브라우저가 예전 화면을 붙잡고 있으면 새 버전으로 다시 열기 */
-var APP_BUILD = '20261128-1647';
+var APP_BUILD = '20261128-1655';
 (function() {
   try {
     if (!/^\d{8}/.test(APP_BUILD)) return;
@@ -18739,20 +18739,29 @@ button[style*="background:#F1F5F9"],button[style*="background: #F1F5F9"],button[
 .v3li{border-radius:0}
 </style>
 <style id="designV4t">
-/* ===== [§1-E-11] 글자·버튼 통일 — 버튼은 한 줄, 같은 높이·글자 ===== */
-button:not(.v3-ib):not(.mic):not(#vaFab):not(.v3-row):not(.v3-mi):not(.v3-stat):not(#v4Nav button):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){white-space:nowrap !important;line-height:1.2 !important;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-#mainContainer button:not(.v3-ib):not(.v3-row):not(.v3-mi):not(.v3-stat):not(.v3-act):not(.v3-pill):not(.tab-btn):not(.tag):not(.portal-order-tab):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),
-#docWriterSection button:not(.v3-act):not(.tab-btn):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),
-.card button:not(.v3-act):not(.v3-pill):not(.tab-btn):not(.tag):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){min-height:44px;font-size:15px !important;font-weight:700 !important;padding-left:14px;padding-right:14px}
-label[style*="cursor:pointer"]:not(:has(input[type=checkbox])):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),label[style*="cursor: pointer"]:not(:has(input[type=checkbox])):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){white-space:nowrap !important;font-size:15px !important;font-weight:700 !important;min-height:44px;border-radius:12px !important}
-.v3-act,.v3-pill{font-size:13.5px !important;font-weight:700 !important;height:36px !important;min-height:36px;padding:0 12px !important;white-space:nowrap !important}
-.tab-btn,.portal-order-tab,.tag{font-size:14px !important;font-weight:700 !important;min-height:36px;padding:0 14px !important;white-space:nowrap !important}
-/* 글자 크기 단계: 제목 17 · 소제목 15 · 본문 15 · 안내 13 */
-.section-title,.section-title span{font-size:17px !important;font-weight:800 !important}
-.tax-step-header span:first-child,.gj-h,.gj-label{font-size:15px !important;font-weight:800 !important}
+/* ===== [§1-E-11] 버튼·글자 크기 하나로 통일 =====
+   기본 버튼 40px · 14px  /  줄 안의 작은 버튼 34px · 13px  /  화면 가로 꽉 찬 큰 버튼 48px · 15px  /  탭·지역 단추 34px · 13.5px */
+button:where(:not(.v3-ib):not(.mic):not(#vaFab):not(.v3-row):not(.v3-mi):not(.v3-stat):not(.v3-gmore):not(#v4Nav button):not([style*="50%"]):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *)){white-space:nowrap !important;line-height:1.2 !important;display:inline-flex !important;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;
+  height:40px !important;min-height:40px !important;max-height:none;font-size:14px !important;font-weight:700 !important;padding:0 12px !important;border-radius:12px !important}
+label[style*="cursor:pointer"]:not(:has(input[type=checkbox])):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *),label[style*="cursor: pointer"]:not(:has(input[type=checkbox])):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){white-space:nowrap !important;font-size:14px !important;font-weight:700 !important;height:40px !important;min-height:40px;padding:0 12px !important;border-radius:12px !important;display:inline-flex !important;align-items:center;justify-content:center;box-sizing:border-box}
+/* 가로 꽉 찬 큰 버튼 */
+button[style*="width:100%"]:where(:not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *)),button[style*="width: 100%"]:where(:not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *)),.btn-big-action,.save-btn{height:48px !important;min-height:48px !important;font-size:15px !important}
+/* 목록 줄 안 · 제목 옆의 작은 버튼 */
+.v3-act,.v3-pill,.v3li-act button,.v3-acts button,li button,.section-title button,.tax-step-header button,.v3-gh button,.v3-lh button,[class*="item"] button,[class*="-row"] button:not(.gj-btn){height:34px !important;min-height:34px !important;font-size:13px !important;padding:0 10px !important;border-radius:10px !important}
+.v3li-act button{width:auto !important;min-width:34px}
+/* 탭 · 지역 · 거르기 단추 */
+.tab-btn,.portal-order-tab,.tag,.tax-preset-chip{display:inline-flex !important;align-items:center !important;justify-content:center;height:34px !important;min-height:34px !important;padding:0 14px !important;font-size:13.5px !important;font-weight:700 !important;line-height:1 !important;white-space:nowrap !important;border-radius:999px !important;box-sizing:border-box}
+/* 글자 크기 단계: 화면 제목 17 · 칸 제목 15 · 본문 15 · 안내 13 */
+.section-title,.section-title > span{font-size:17px !important;font-weight:800 !important}
+.tax-step-header span:first-child,.gj-h{font-size:15px !important;font-weight:800 !important}
 .card label:not([style*="cursor"]):not(:has(input[type=checkbox])):not(#printSheet *):not(#sheetWrapper *):not(#rcSheet *):not(table *){font-size:14px !important}
 .card small,.card .hint{font-size:13px !important}
-.v3li-main{min-width:0}select{min-width:0;max-width:100%}input:not([type=checkbox]):not([type=radio]){min-width:0}div:has(> .tax-preset-chip){flex-wrap:wrap !important}.gj-row{display:flex !important;flex-wrap:nowrap !important;gap:8px}.gj-row > .gj-btn{flex:1 1 0 !important;padding:0 6px !important;min-width:0}div:has(> button[onclick="checkBankMessages()"]) > button{padding:0 8px !important;flex:1 1 auto !important}.v3li-main b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.v3li-main{min-width:0}
+select{min-width:0;max-width:100%}
+input:not([type=checkbox]):not([type=radio]){min-width:0}
+div:has(> .tax-preset-chip){flex-wrap:wrap !important}
+.gj-row{display:flex !important;flex-wrap:nowrap !important;gap:8px}.gj-row > .gj-btn{flex:1 1 0 !important;padding:0 6px !important;min-width:0}
+div:has(> button[onclick="checkBankMessages()"]) > button{padding:0 8px !important;flex:1 1 auto !important}
 .gj-l{font-size:14px !important;font-weight:700 !important}
 </style>
 <style id="designV4">
